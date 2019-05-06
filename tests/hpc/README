@@ -1,0 +1,11 @@
+HPC tests
+
+SLURM
+----------
+Basic slurm test
+- slurm compute nodes
+	-- set-up of slurm
+	-- enable and start munge and slurmd
+
+- slurm controller
+	-- srun -N onNodes /bin/ls
