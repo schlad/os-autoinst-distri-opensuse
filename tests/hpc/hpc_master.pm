@@ -16,7 +16,7 @@
 #    the databases, artificial users are added etc.
 # Maintainer: Sebastian Chlad <sebastian.chlad@suse.com>
 
-use base "hpcbase";
+use Mojo::Base 'hpc::hpcbase';
 use strict;
 use warnings;
 use testapi;

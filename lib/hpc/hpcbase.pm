@@ -1,4 +1,23 @@
-package hpcbase;
+# Copyright © 2019 SUSE LLC
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <http://www.gnu.org/licenses/>.
+
+# Summary: Base class for HPC
+#
+# Maintainer: Sebastian Chlad <schlad@suse.de>
+
+package hpc::hpcbase;
 use base "opensusebasetest";
 use strict;
 use warnings;
@@ -7,8 +26,8 @@ use utils;
 
 sub enable_and_start {
     my ($self, $arg) = @_;
-    systemctl "enable $arg";
-    systemctl "start $arg";
+    systemctl("enable $arg");
+    systemctl("start $arg");
 }
 
 sub upload_service_log {
@@ -21,7 +40,7 @@ sub upload_service_log {
 sub post_fail_hook {
     my ($self) = @_;
     $self->select_serial_terminal;
-    script_run("journalctl -o short-precise > /tmp/journal.log");
+    script_run('journalctl -o short-precise > /tmp/journal.log');
     script_run('cat /tmp/journal.log');
     upload_logs('/tmp/journal.log', failok => 1);
     upload_service_log('wickedd-dhcp4.service');
@@ -30,7 +49,18 @@ sub post_fail_hook {
 sub switch_user {
     my ($self, $username) = @_;
     type_string("su - $username\n");
-    assert_screen 'user-nobody';
+    assert_screen('user-nobody');
+}
+
+=head2
+    prepare_user_and_group()
+  creating slurm user and group with some pre-defined ID
+ needed due to https://bugzilla.suse.com/show_bug.cgi?id=1124587
+=cut
+sub prepare_user_and_group {
+    my ($self) = @_;
+    assert_script_run('groupadd slurm -g 7777');
+    assert_script_run('useradd -u 7777 -g 7777 slurm');
 }
 
 ## Prepare master node names, so those names could be reused, for instance
@@ -169,23 +199,12 @@ sub check_nodes_availability {
 
 sub mount_nfs {
     ## TODO: get rid of hardcoded name for the NFS-dir
-    systemctl("start nfs");
-    systemctl("start rpcbind");
+    systemctl('start nfs');
+    systemctl('start rpcbind');
     record_info('show mounts aviable on the supportserver', script_output('showmount -e 10.0.2.1'));
     assert_script_run('mkdir -p /shared/slurm');
     assert_script_run('chown -Rcv slurm:slurm /shared/slurm');
     assert_script_run('mount -t nfs -o nfsvers=3 10.0.2.1:/nfs/shared /shared/slurm');
-}
-
-=head2
-    prepare_user_and_group()
-  creating slurm user and group with some pre-defined ID
- needed due to https://bugzilla.suse.com/show_bug.cgi?id=1124587
-=cut
-sub prepare_user_and_group {
-    my ($self) = @_;
-    assert_script_run('groupadd slurm -g 7777');
-    assert_script_run('useradd -u 7777 -g 7777 slurm');
 }
 
 1;

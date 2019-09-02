@@ -1,6 +1,6 @@
 # SUSE's openQA tests
 #
-# Copyright © 2017-2019 SUSE LLC
+# Copyright © 2019 SUSE LLC
 #
 # Copying and distribution of this file, with or without modification,
 # are permitted in any medium without royalty provided the copyright
@@ -10,7 +10,7 @@
 # Summary: openmpi mpirun check
 # Maintainer: Sebastian Chlad <sebastian.chlad@suse.com>
 
-use base "hpcbase";
+use Mojo::Base 'hpc::hpcbase';
 use strict;
 use warnings;
 use testapi;

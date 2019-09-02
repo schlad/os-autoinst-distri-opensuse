@@ -12,7 +12,7 @@
 #    are ready to be used
 # Maintainer: Sebastian Chlad <schlad@suse.de>
 
-use base "hpcbase";
+use Mojo::Base 'hpc::hpcbase';
 use strict;
 use warnings;
 use testapi;
