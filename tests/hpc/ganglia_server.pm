@@ -1,6 +1,6 @@
 # SUSE's openQA tests
 #
-# Copyright © 2017 SUSE LLC
+# Copyright © 2017-2019 SUSE LLC
 #
 # Copying and distribution of this file, with or without modification,
 # are permitted in any medium without royalty provided the copyright
@@ -10,7 +10,7 @@
 # Summary: Ganglia Test - server
 #   Acts as server which gets data from the client and is running the webinterface
 #   to show the metrics for all connected hosts
-# Maintainer: soulofdestiny <mgriessmeier@suse.com>
+# Maintainer: Sebastian Chlad <schlad@suse.com>
 # Tags: https://fate.suse.com/323979
 
 use base "hpcbase";
@@ -23,19 +23,16 @@ use utils;
 use version_utils 'is_sle';
 
 sub run {
-    my $self = shift;
-    # Get number of nodes
-    my $nodes = get_required_var("CLUSTER_NODES");
-    # Get hostname
+    my $self     = shift;
+    my $nodes    = get_required_var("CLUSTER_NODES");
     my $hostname = get_required_var("HOSTNAME");
 
     zypper_call('in ganglia-gmetad ganglia-gmond ganglia-gmetad-skip-bcheck');
-    systemctl 'start gmetad';
+    systemctl('start gmetad');
     barrier_wait('GANGLIA_GMETAD_STARTED');
-    systemctl 'start gmond';
+    systemctl('start gmond');
     barrier_wait('GANGLIA_GMOND_STARTED');
 
-    # wait for client
     barrier_wait('GANGLIA_INSTALLED');
     barrier_wait('GANGLIA_CLIENT_DONE');
 
