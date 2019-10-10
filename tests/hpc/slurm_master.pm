@@ -67,7 +67,7 @@ sub pars_results {
 
 sub basic_test_01 {
     my $name        = 'Srun check';
-    my $description = 'Basic SRUN test';
+    my $description = 'Basic SRUN test: srun -w';
 
     my $result = script_run("srun -w slave-node00 date");
 
@@ -90,8 +90,24 @@ sub basic_test_02 {
 sub basic_test_03 {
     my $name        = 'Stress tests with srun';
     my $description = 'SRUN stress test';
+    my $count;
+    my $result;
 
-    ##TODO: implement srun stress test; run 100+ srun jobs
+    for (my $i = 0, $i < 100, $i++) {
+        $result = script_run("srun -N {$nodes} date");
+	if ($result == 0) {
+            $count++;
+        }
+    }
+    #5% and more is considered a failure
+    if ($count >= 5) {
+        $result = 0;
+    } else {
+        $result = 1;
+    }
+
+    my %results = generate_results($name, $description, $result);
+    return %results;
 }
 
 sub basic_test_04 {
@@ -133,8 +149,120 @@ sub basic_test_05 {
     return %results;
 }
 
+sub basic_test_06 {
+    my ($self, $nodes) = @_;
+    my $name           = 'Srun -N test';
+    my $description    = 'Basic srun test: srun -N';
+
+    my $result = script_run("srun -N {$nodes} date");
+
+    my %results = generate_results($name, $description, $result);
+    return %results;
+}
+
 sub ha_test_01 {
-    ##TODO: Add fail-over test
+    my $name           = 'HA slurm: takeover';
+    my $description    = 'Check if backup slurmctl can take over
+	    and schedule jobs while takeover command is used';
+
+    my $result = script_run('scontrol takeover');
+
+    for (my $i = 0, $i < 100, $i++) {
+        $result = script_run("srun -N {$nodes} date");
+        if ($result == 0) {
+            $count++;
+        }
+    }
+    #5% and more is considered a failure
+    if ($count >= ) {
+        $result = 0;
+    } else {
+        $result = 1;
+    }
+
+    my %results = generate_results($name, $description, $result);
+    return %results;
+}
+
+sub ha_test_02 {
+    my $name           = 'HA slurm: systemctld stop';
+    my $description    = 'Check if backup slurmctl can take over
+            and schedule jobs while systemctl stop is used';
+
+    my $result = systemctl('stop slurmctld');
+    if ($result == 0) {
+        GOTO: FAIL;
+    }
+    
+    for (my $i = 0, $i < 100, $i++) {
+        $result = script_run("srun -N {$nodes} date");
+        if ($result == 0) {
+            $count++;
+        }
+    }
+    #5% and more is considered a failure
+    if ($count >= ) {
+        $result = 0;
+    } else {
+        $result = 1;
+    }
+
+    my %results = generate_results($name, $description, $result);
+    return %results;
+}
+
+sub ha_test_03 {
+    my $name           = 'HA slurm: kill slurmctl';
+    my $description    = 'Check if backup slurmctl can take over
+            and schedule jobs while primary slurmctl is killed';
+
+    ##TODO: Add fail-over test: kill
+    # grep for slurmctl pid
+    # kill that pid
+    # check if slurmctl is indeed dead
+    # run srun stuff
+    for (my $i = 0, $i < 500, $i++) {
+        $result = script_run("srun -N {$nodes} date");
+        if ($result == 0) {
+            $count++;
+        }
+    }
+    #5% and more is considered a failure
+    if ($count >= 25) {
+        $result = 0;
+    } else {
+        $result = 1;
+    }
+
+    my %results = generate_results($name, $description, $result);
+    return %results;
+}
+
+sub ha_test_04 {
+    my $name           = 'HA slurm: transparent takeover';
+    my $description    = 'Check if backup slurmctl can take over
+            while jobs are scheduled';
+
+    ##TODO: kill slurmctl while jobs are being run...
+    # make sure slurmctl backup takes over....
+    for (my $i = 0, $i < 500, $i++) {
+        $result = script_run("srun -N {$nodes} date");
+        if ($result == 0) {
+            $count++;
+        }
+        if ($i == 100) {
+            script_run('scontrol takeover');
+        }
+    }
+    #5% and more is considered a failure
+    if ($count >= 25) {
+        $result = 0;
+    } else {
+        $result = 1;
+    }
+
+    my %results = generate_results($name, $description, $result);
+    return %results;
 }
 
 sub accounting_test_01 {
@@ -267,6 +395,9 @@ sub run {
     pars_results(%test);
 
     %test = basic_test_05();
+    pars_results(%test);
+
+    %test = basic_test_06($nodes);
     pars_results(%test);
 
     if ($slurm_conf =~ /nfs_db/) {
