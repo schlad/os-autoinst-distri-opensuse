@@ -27,6 +27,7 @@ sub run {
     my $arch          = get_required_var("ARCH");
     my $sdk_version   = get_required_var("BUILD_SDK");
     my $mpi           = get_required_var("MPI");
+    my $cpu_count     = get_required_var("CPUS");
     my $mpi_c         = "simple_mpi.c";
     my @cluster_nodes = $self->cluster_names();
     my $cluster_nodes = join(',', @cluster_nodes);
@@ -42,6 +43,7 @@ sub run {
         add_suseconnect_product("sle-module-development-tools");
     }
 
+    ##TODO: install boost and hypre
     zypper_call("in gcc");
     zypper_call("in $mpi $mpi-devel");
     assert_script_run("export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib64/mpi/gcc/$mpi/lib64/");
@@ -67,6 +69,12 @@ sub run {
         assert_script_run("/usr/lib64/mpi/gcc/$mpi/bin/mpirun --allow-run-as-root /tmp/simple_mpi");
     } else {
         assert_script_run("/usr/lib64/mpi/gcc/$mpi/bin/mpirun /tmp/simple_mpi | tee /tmp/mpirun.out");
+    }
+
+    if ($cpu_count > 1) {
+        ##TODO add hypre tests
+        #https://github.com/LLNL/hypre.git
+        #src/examples 01 and 02
     }
 
     record_info('INFO', 'Run MPI over several nodes');
