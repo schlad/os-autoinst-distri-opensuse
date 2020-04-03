@@ -88,6 +88,7 @@ sub run {
         # avoid timeout for booting to HDD
         send_key 'ret';
     }
+    sleep(99999);
 }
 
 sub test_flags {
