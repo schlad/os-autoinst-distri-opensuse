@@ -50,6 +50,7 @@ sub run {
     systemctl('start rasdaemon');
     systemctl('is-active rasdaemon');
 
+    sleep(9999999);
     # Validating output of 'ras-mc-ctl --mainboard'
     my $mainboard_output = script_output('ras-mc-ctl --mainboard');
     record_info('INFO', $mainboard_output);
