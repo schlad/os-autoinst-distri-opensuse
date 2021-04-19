@@ -40,8 +40,8 @@ sub run {
     systemctl('daemon-reload');
 
     # Add cgroup capture program to startup profile
-    my $sid         = get_required_var('INSTANCE_SID');
-    my $instance_id = get_required_var('INSTANCE_ID');
+    my $sid         = get_required_var('INSTANCE_SID_1');
+    my $instance_id = get_required_var('INSTANCE_ID_1');
     my $hostname    = get_hostname;
     my $profile     = "/usr/sap/${sid}/SYS/profile/${sid}_HDB${instance_id}_${hostname}";
     assert_script_run 'echo "# all programs spawned below will be put in dedicated cgroup" >> ' . $profile;

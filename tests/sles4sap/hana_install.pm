@@ -57,19 +57,23 @@ sub get_hana_device_from_system {
         $devsize = $1;
         $devsize /= (1024 * 1024);    # Work in Mbytes since $RAM = $self->get_total_mem() is in Mbytes
     }
-
+    record_info "Device Seb: $device", "seb [$device] just checking";
     return $device;
 }
 
 sub run {
     my ($self) = @_;
     my ($proto, $path) = $self->fix_path(get_required_var('HANA'));
-    my $sid    = get_required_var('INSTANCE_SID');
-    my $instid = get_required_var('INSTANCE_ID');
+    my $sid1    = get_required_var('INSTANCE_SID_1');
+    my $instid1 = get_required_var('INSTANCE_ID_1');
+    my $sid2    = get_required_var('INSTANCE_SID_2');
+    my $instid2 = get_required_var('INSTANCE_ID_2');
 
     $self->select_serial_terminal;
     my $RAM = $self->get_total_mem();
     die "RAM=$RAM. The SUT needs at least 24G of RAM" if $RAM < 24000;
+
+    record_info "RAM Seb: $RAM", "seb [$RAM] just checking";
 
     zypper_call('in SAPHanaSR SAPHanaSR-doc ClusterTools2') if get_var('HA_CLUSTER');
 
@@ -94,7 +98,7 @@ sub run {
         hanadata   => {mountpt => '/hana/data',         size => "${full_size}g"},
         hanalog    => {mountpt => '/hana/log',          size => "${half_size}g"},
         hanashared => {mountpt => '/hana/shared',       size => "${full_size}g"},
-        usr_sap    => {mountpt => "/usr/sap/$sid/home", size => '50g'}
+        usr_sap1   => {mountpt => "/usr/sap/$sid1/home", size => '20g'}
     );
 
     # Partition disks for Hana
@@ -107,6 +111,8 @@ sub run {
         # mountpoints and LVM. Otherwise leave those choices to hdblcm. If running
         # in a different backend, assume sdb exists. Always create mountpoints.
         foreach (keys %mountpts) { assert_script_run "mkdir -p $mountpts{$_}->{mountpt}"; }
+        assert_script_run "mkdir -p /usr/sap/$sid2/home";
+
         if ((check_var('BACKEND', 'qemu') and get_var('HDDSIZEGB_2')) or !check_var('BACKEND', 'qemu')) {
             # We need 2.5 times $RAM + 50G for HANA installation.
             my $device = get_var('HANA_INST_DEV', '');
@@ -160,7 +166,7 @@ sub run {
         }
     }
     # Configure NVDIMM devices only when running on a BACKEND with NVDIMM
-    my $pmempath = get_var('HANA_PMEM_BASEPATH', "/hana/pmem/$sid");
+    my $pmempath = get_var('HANA_PMEM_BASEPATH', "/hana/pmem/$sid1");
     if (get_var('NVDIMM')) {
         my $nvddevs = get_var('NVDIMM_NAMESPACES_TOTAL', 2);
         foreach my $i (0 .. ($nvddevs - 1)) {
@@ -190,14 +196,14 @@ sub run {
       --hostname=$(hostname) --db_mode=multiple_containers --db_isolation=low --restrict_max_mem=n
       --userid=1001 --groupid=79 --use_master_password=n --skip_hostagent_calls=n --system_usage=production);
     push @hdblcm_args,
-      "--sid=$sid",
-      "--number=$instid",
-      "--home=$mountpts{usr_sap}->{mountpt}",
+      "--sid=$sid1",
+      "--number=$instid1",
+      "--home=$mountpts{usr_sap1}->{mountpt}",
       "--password=$sles4sap::instance_password",
       "--system_user_password=$sles4sap::instance_password",
       "--sapadm_password=$sles4sap::instance_password",
-      "--datapath=$mountpts{hanadata}->{mountpt}/$sid",
-      "--logpath=$mountpts{hanalog}->{mountpt}/$sid",
+      "--datapath=$mountpts{hanadata}->{mountpt}/$sid1",
+      "--logpath=$mountpts{hanalog}->{mountpt}/$sid1",
       "--sapmnt=$mountpts{hanashared}->{mountpt}";
     push @hdblcm_args, "--pmempath=$pmempath", "--use_pmem" if get_var('NVDIMM');
     my $cmd = join(' ', $hdblcm, @hdblcm_args);
@@ -209,13 +215,48 @@ sub run {
     # as instance starts automatically faster and sles4sap::test_start() may fail
     unless (get_var('HA_CLUSTER') or check_var('BACKEND', 'ipmi')) {
         my $hostname = script_output 'hostname';
-        file_content_replace("$mountpts{hanashared}->{mountpt}/${sid}/profile/${sid}_HDB${instid}_${hostname}", '^Autostart[[:blank:]]*=.*' => 'Autostart = 1');
+        file_content_replace("$mountpts{hanashared}->{mountpt}/${sid1}/profile/${sid1}_HDB${instid1}_${hostname}", '^Autostart[[:blank:]]*=.*' => 'Autostart = 1');
     }
 
     if (get_var('NVDIMM')) {
-        assert_script_run 'chown ' . lc($sid) . "adm:sapsys $pmempath $pmempath/pmem*";
+        assert_script_run 'chown ' . lc($sid1) . "adm:sapsys $pmempath $pmempath/pmem*";
         assert_script_run "chmod 0755 $pmempath $pmempath/pmem*";
     }
+
+######
+    # Install hana
+    my @hdblcm_args_new = qw(--autostart=n --shell=/bin/sh --workergroup=default --system_usage=custom --batch
+      --hostname=$(hostname) --db_mode=multiple_containers --db_isolation=low --restrict_max_mem=n
+      --userid=1001 --groupid=79 --use_master_password=n --skip_hostagent_calls=n --system_usage=production);
+    push @hdblcm_args_new,
+      "--sid=$sid2",
+      "--number=$instid2",
+      "--home=/usr/sap/$(sid2)/home",
+      "--password=$sles4sap::instance_password",
+      "--system_user_password=$sles4sap::instance_password",
+      "--sapadm_password=$sles4sap::instance_password",
+      "--datapath=$mountpts{hanadata}->{mountpt}/$sid2",
+      "--logpath=$mountpts{hanalog}->{mountpt}/$sid2",
+      "--sapmnt=$mountpts{hanashared}->{mountpt}";
+    push @hdblcm_args_new, "--pmempath=$pmempath", "--use_pmem" if get_var('NVDIMM');
+    my $cmd = join(' ', $hdblcm, @hdblcm_args_new);
+    record_info 'hdblcm command', $cmd;
+    assert_script_run $cmd, $tout;
+
+    # Enable autostart of HANA HDB, otherwise DB will be down after the next reboot
+    # NOTE: not on HanaSR, as DB is managed by the cluster stack; nor on bare metal,
+    # as instance starts automatically faster and sles4sap::test_start() may fail
+    unless (get_var('HA_CLUSTER') or check_var('BACKEND', 'ipmi')) {
+        my $hostname = script_output 'hostname';
+        file_content_replace("$mountpts{hanashared}->{mountpt}/${sid2}/profile/${sid2}_HDB${instid2}_${hostname}", '^Autostart[[:blank:]]*=.*' => 'Autostart = 1');
+    }
+
+    if (get_var('NVDIMM')) {
+        assert_script_run 'chown ' . lc($sid2) . "adm:sapsys $pmempath $pmempath/pmem*";
+        assert_script_run "chmod 0755 $pmempath $pmempath/pmem*";
+    }
+
+######
 
     # Upload installations logs
     $self->upload_hana_install_log;
