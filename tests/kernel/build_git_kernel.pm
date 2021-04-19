@@ -25,6 +25,7 @@ sub run {
     my $self       = shift;
     my $git_tree   = get_required_var('KERNEL_GIT_TREE');
     my $git_branch = get_var('KERNEL_GIT_BRANCH', 'master');
+    my $selftests  = get_var('KERNEL_SELFTESTS');
 
     $self->select_serial_terminal;
 
@@ -34,19 +35,23 @@ sub run {
     assert_script_run("git clone --depth 1 --single-branch --branch $git_branch $git_tree linux", 7200);
 
     assert_script_run('cd linux');
-    assert_script_run('zcat /proc/config.gz > .config');
-    assert_script_run('make olddefconfig');
+    if ($selftests) {
+        #TODO
+    } else {
+        assert_script_run('zcat /proc/config.gz > .config');
+        assert_script_run('make olddefconfig');
 
-    assert_script_run('make -j `nproc` | tee /tmp/kernelbuild.log', 3600);
-    assert_script_run("sed -i 's/allow_unsupported_modules 0/allow_unsupported_modules 1/g' /etc/modprobe.d/10-unsupported-modules.conf");
-    assert_script_run('make install modules_install');
-    assert_script_run('mkinitrd -f iscsi,md,multipath,lvm,lvm2,ifup,fcoe,dcbd');
+        assert_script_run('make -j `nproc` | tee /tmp/kernelbuild.log', 3600);
+        assert_script_run("sed -i 's/allow_unsupported_modules 0/allow_unsupported_modules 1/g' /etc/modprobe.d/10-unsupported-modules.conf");
+        assert_script_run('make install modules_install');
+        assert_script_run('mkinitrd -f iscsi,md,multipath,lvm,lvm2,ifup,fcoe,dcbd');
 
-    power_action('reboot', textmode => 1, keepconsole => 1);
+        power_action('reboot', textmode => 1, keepconsole => 1);
 
-    # make sure we wait until the reboot is done
-    select_console('sol', await_console => 0);
-    assert_screen('linux-login', 1800);
+        # make sure we wait until the reboot is done
+        select_console('sol', await_console => 0);
+        assert_screen('linux-login', 1800);
+    }
 }
 
 sub post_fail_hook {
