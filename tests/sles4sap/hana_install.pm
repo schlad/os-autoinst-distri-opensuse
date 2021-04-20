@@ -95,9 +95,9 @@ sub run {
     my $half_size = ceil($full_size / 2);
     my $volgroup  = 'vg_hana';
     my %mountpts  = (
-        hanadata   => {mountpt => '/hana/data',         size => "${full_size}g"},
-        hanalog    => {mountpt => '/hana/log',          size => "${half_size}g"},
-        hanashared => {mountpt => '/hana/shared',       size => "${full_size}g"},
+        hanadata   => {mountpt => '/hana/data',         size => '20g'},
+        hanalog    => {mountpt => '/hana/log',          size => '20g'},
+        hanashared => {mountpt => '/hana/shared',       size => '20g'},
         usr_sap1   => {mountpt => "/usr/sap/$sid1/home", size => '20g'}
     );
 
@@ -231,7 +231,7 @@ sub run {
     push @hdblcm_args_new,
       "--sid=$sid2",
       "--number=$instid2",
-      "--home=/usr/sap/$(sid2)/home",
+      "--home=/usr/sap/ABS/home",
       "--password=$sles4sap::instance_password",
       "--system_user_password=$sles4sap::instance_password",
       "--sapadm_password=$sles4sap::instance_password",
