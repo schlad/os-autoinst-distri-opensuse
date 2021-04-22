@@ -20,6 +20,7 @@ use warnings;
 use testapi;
 use utils;
 use power_action_utils 'power_action';
+use version_utils 'is_sle';
 
 sub run {
     my $self       = shift;
