@@ -81,10 +81,21 @@ sub run {
     if (check_var('ARCH', 'x86_64') && check_var('VERSION', '15-SP2')) {
         inject_error();
         my $error_output = script_output('ras-mc-ctl --errors');
-        record_info('INFO', $error_output);
+        record_info('Initial MCE event output', $error_output);
 
-        die('No MCE event recored - ' . $error_output)
-          unless ($error_output =~ /MCE events/ && $error_output =~ /status=0x9c00410000080f2b/);
+        #https://progress.opensuse.org/issues/95126
+        #Until the error output does not include 'MCE events', execute ras-mc-ctl --errors to see
+        #if MCE event is eventually sucessfully injected. Die if arbitrary counter time is exceeded
+        my $counter = 0;
+        until($error_output =~ /MCE events/ && $error_output =~ /status=0x9c00410000080f2b/) {
+            record_info('No MCE event recored so far', $error_output);
+            $error_output = script_output('ras-mc-ctl --errors');
+            $counter++;
+            sleep(1);
+	    if ($counter > 20) {
+               die('No MCE event recored within expected timeframe');
+            }
+        }
     }
 
     ##TODO: try to add error injection for ARM
