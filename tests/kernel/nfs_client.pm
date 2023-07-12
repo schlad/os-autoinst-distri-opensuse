@@ -25,6 +25,7 @@ sub run {
 
     barrier_wait("NFS_SERVER_ENABLED");
     record_info("showmount", script_output("showmount -e server-node00"));
+    sleep(99999999);
 
     assert_script_run("mkdir $local_nfs3 $local_nfs4 $local_nfs3_async $local_nfs4_async");
     assert_script_run("mount -t nfs -o nfsvers=3 server-node00:/nfs/shared_nfs3 $local_nfs3");
