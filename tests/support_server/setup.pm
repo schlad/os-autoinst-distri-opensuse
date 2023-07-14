@@ -174,6 +174,7 @@ sub setup_dns_server {
         systemctl restart dhcpd
     ";
     $dns_server_set = 1;
+    record_info("named.conf", script_output("cat /etc/named.conf"));
 }
 
 sub dhcpd_conf_generation {
