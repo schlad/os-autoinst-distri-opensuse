@@ -5,4 +5,5 @@ description:    >
 schedule:
     - boot/boot_to_desktop
     - kernel/kdump
+    - kernel/kdump_extended
     - shutdown/shutdown
