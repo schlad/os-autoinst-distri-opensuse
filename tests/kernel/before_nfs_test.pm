@@ -17,9 +17,9 @@ sub run {
     my ($self) = @_;
 
     select_serial_terminal;
-    $self->provision_cluster();
+    #$self->provision_cluster();
     systemctl 'stop ' . $self->firewall;
-    set_hostname(get_var("HOSTNAME", "susetest"));
+    #set_hostname(get_var("HOSTNAME", "susetest"));
 }
 
 sub test_flags {
