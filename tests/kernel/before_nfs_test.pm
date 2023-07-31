@@ -7,6 +7,7 @@
 # Maintainer: Kernel QE <kernel-qa@suse.de>
 
 use Mojo::Base "opensusebasetest";
+use Mojo::Base qw(hpcbase hpc::cluster), -signatures;
 use testapi;
 use serial_terminal "select_serial_terminal";
 use utils;
@@ -16,6 +17,7 @@ sub run {
     my ($self) = @_;
 
     select_serial_terminal;
+    $self->provision_cluster();
     systemctl 'stop ' . $self->firewall;
     set_hostname(get_var("HOSTNAME", "susetest"));
 }
