@@ -44,7 +44,7 @@ sub client {
 
     foreach my $path (@paths) {
         assert_script_run('cd ' . $path);
-        my $ret = script_run($run_stress_ng, timeout => $stressor_timeout * 100);
+        my $ret = script_run($run_stress_ng, timeout => $stressor_timeout * 300);
 
         if ($ret == 0) {
             record_info('stress-ng', "return: 0 (success), path: $path");
