@@ -43,8 +43,9 @@
       <li><a href="#zypper_patches">zypper_patches</a></li>
       <li><a href="#"></a></li>
       <li><a href="#set_zypper_lock_timeout">set_zypper_lock_timeout</a></li>
-      <li><a href="#workaround_type_encrypted_passphrase">workaround_type_encrypted_passphrase</a></li>
+      <li><a href="#unlock_bootloader">unlock_bootloader</a></li>
       <li><a href="#is_boot_encrypted">is_boot_encrypted</a></li>
+      <li><a href="#need_unlock_after_bootloader">need_unlock_after_bootloader</a></li>
       <li><a href="#is_bridged_networking">is_bridged_networking</a></li>
       <li><a href="#set_bridged_networking">set_bridged_networking</a></li>
       <li><a href="#print_ip_info">print_ip_info</a></li>
@@ -93,7 +94,7 @@
       <li><a href="#package_upgrade_check-package_upgrade_check">package_upgrade_check package_upgrade_check();</a></li>
       <li><a href="#validate_result-_validate_result">_validate_result _validate_result();</a></li>
       <li><a href="#generate_results-generate_results">generate_results generate_results();</a></li>
-      <li><a href="#pars_results-pars_results">pars_results pars_results();</a></li>
+      <li><a href="#parse_test_results-parse_test_results">parse_test_results parse_test_results();</a></li>
       <li><a href="#test_case-test_case-name-description-result">test_case test_case($name, $description, $result);</a></li>
       <li><a href="#remount_tmp_if_ro">remount_tmp_if_ro</a></li>
       <li><a href="#detect_bsc_1063638">detect_bsc_1063638</a></li>
@@ -102,6 +103,7 @@
       <li><a href="#handle_screen-handle_screen-needles-handler_map-assert-assert-max_loops-max_loops">handle_screen handle_screen($needles, $handler_map [, assert =&gt; $assert] [, max_loops =&gt; $max_loops] [...]);</a></li>
       <li><a href="#define_secret_variable-define_secret_variable-var_name-var_value-define_secret_variable-sets-a-hidden-environment-variable-without-exposing-it-to-openQA.-This-function-is-useful-to-hide-secrets-from-openQA-by-setting-them-as-an-accessible-environment-variable-but-without-any-traces-in-the-output-terminals.-e.g.-define_secret_variable-SECRET-get_var-_SECRET_VARIABLE-would-store-the-openQA-variable-_SECRET_VARIABLE-into-the-SECRET-environment-variable-which-can-be-used-afterwards-by-using-SECRET">define_secret_variable define_secret_variable($var_name, $var_value); define_secret_variable sets a hidden environment variable without exposing it to openQA. This function is useful to hide secrets from openQA by setting them as an accessible environment variable, but without any traces in the output terminals. e.g. define_secret_variable(&#39;SECRET&#39;, get_var(&#39;_SECRET_VARIABLE&#39;)) would store the openQA variable &#39;_SECRET_VARIABLE&#39; into the &#39;$SECRET&#39; environment variable, which can be used afterwards by using $SECRET.</a></li>
       <li><a href="#ping_size_check-ping_size_check-target-size-ping_size_check-will-ping-the-defined-target-with-different-and-increasing-sizes-with-disabled-packet-fragmentation.-If-a-size-is-specified-it-will-do-single-ping-check-with-one-size">ping_size_check ping_size_check($target, $size); ping_size_check will ping the defined target with different and increasing sizes with disabled packet fragmentation. If a size is specified, it will do single ping check with one size.</a></li>
+      <li><a href="#write_sut_file">write_sut_file</a></li>
     </ul>
   </li>
 </ul><h1>lib/utils.pm</h1>
@@ -334,17 +336,25 @@ zypper_ar(&#39;https://download.opensuse.org/repositories/devel:/kubic/openSUSE_
 
 <p>Set how many seconds zypper will wait for other processes to release the system lock. If this function is called without arguments, it&#39;ll set timeout to 300 seconds.</p>
 
-<h2 id="workaround_type_encrypted_passphrase">workaround_type_encrypted_passphrase</h2>
+<h2 id="unlock_bootloader">unlock_bootloader</h2>
 
-<pre><code>workaround_type_encrypted_passphrase();</code></pre>
+<pre><code>unlock_bootloader();</code></pre>
 
-<p>Record soft-failure for unresolved feature fsc#320901 which we think is important and then unlock encrypted boot partitions if we expect it to be encrypted. This condition is met on &#39;storage-ng&#39; which by default puts the boot partition within the encrypted LVM same as in test scenarios where we explicitly create an LVM including boot (<code>FULL_LVM_ENCRYPT</code>). <code>ppc64le</code> was already doing the same by default also in the case of pre-storage-ng but not anymore for storage-ng.</p>
+<p>Unlock bootloader if boot partition is encrypted.</p>
 
 <h2 id="is_boot_encrypted">is_boot_encrypted</h2>
 
 <pre><code>is_boot_encrypted();</code></pre>
 
 <p>This will return <code>1</code> if the env variables suggest that the boot partition is encrypted.</p>
+
+<h2 id="need_unlock_after_bootloader">need_unlock_after_bootloader</h2>
+
+<pre><code>need_unlock_after_bootloader();</code></pre>
+
+<p>Whether the disk encryption password(s) need to be entered during system boot (e.g. plymouth or systemd-cryptsetup text prompt).</p>
+
+<p>With newer grub2 (in TW and SLE15-SP6 currently), if root disk is encrypted and contains `/boot`, entering the passphrase in GRUB2 is enough. The key is passed on during boot, so it&#39;s not asked for a second time. We need to enter the passphrase again if there are separate partitions encrypted without LVM configuration (cr_swap,cr_home etc).</p>
 
 <h2 id="is_bridged_networking">is_bridged_networking</h2>
 
@@ -710,13 +720,13 @@ zypper_ar(&#39;https://download.opensuse.org/repositories/devel:/kubic/openSUSE_
 
 <p>This function is used to construct a hash suitable for representation in junit xml format.</p>
 
-<h2 id="pars_results-pars_results">pars_results pars_results();</h2>
+<h2 id="parse_test_results-parse_test_results">parse_test_results parse_test_results();</h2>
 
 <p>Takes <code>test</code> as an argument. <code>test</code> is an array of hashes which contain the test results. They usually are generated by <code>generate_results</code>. Those are parsed and create the junit xml representation.</p>
 
 <h2 id="test_case-test_case-name-description-result">test_case test_case($name, $description, $result);</h2>
 
-<p><code>test_case</code> can produce a data_structure which <code>pars_results</code> can utilize. Using <code>test_case</code> in an OpenQA module you are able to /name/ and describe the whole test as subtasks, in a XUnit format.</p>
+<p><code>test_case</code> can produce a data_structure which <code>parse_test_results</code> can utilize. Using <code>test_case</code> in an OpenQA module you are able to /name/ and describe the whole test as subtasks, in a XUnit format.</p>
 
 <h2 id="remount_tmp_if_ro">remount_tmp_if_ro</h2>
 
@@ -769,6 +779,12 @@ script_finish_io(exitcode =&gt; [12]);</code></pre>
 <p>Mandatory parameter: <code>target</code> destination of ping target.</p>
 
 <p>Optional parameter: <code>size</code> ping size for single ping test.</p>
+
+<h2 id="write_sut_file">write_sut_file</h2>
+
+<pre><code>write_sut_file($path, $contents)</code></pre>
+
+<p>Write <code>$contents</code> to a file <code>$path</code> on the SUT. The directories in <code>$path</code> must already exist.</p>
 
 
 </body>
