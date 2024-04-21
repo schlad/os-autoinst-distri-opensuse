@@ -94,10 +94,10 @@ When subroutine returns immediately returns 1 to indicate that no relogin has oc
 
 sub setup_scientific_module {
     my ($self) = @_;
-    return 1 unless get_var('HPC_LIB', '');
+    return 1 unless get_var('HPC_LIB', '') or check_var('SCIPY', 'RUN');
     my $mpi = get_required_var('MPI');
     my $lib = get_var('HPC_LIB', '');
-    if ($lib eq 'scipy') {
+        if (check_var('SCIPY', 'RUN')) {
         # $mpi-gnu-hpc-devel will be installed on compute nodes
         # which is required to compile the mpi4py.
         # This seems is not be shared by NFS

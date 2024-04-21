@@ -64,6 +64,9 @@ sub run ($self) {
         if (check_var('IMB', 'RUN')) {
             barrier_create('IMB_TEST_DONE', $nodes);
         }
+        if (check_var('SCIPY', 'RUN')) {
+            barrier_create('SCIPY_RUN_TEST', $nodes);
+        }
     }
     elsif (check_var('HPC', 'ww4_controller')) {
         barrier_create('WWCTL_READY', $nodes);
