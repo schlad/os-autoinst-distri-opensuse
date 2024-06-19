@@ -38,6 +38,7 @@ sub run ($self) {
 
     script_run("sudo -u $testapi::username mkdir -p $exports_path{bin}");
     zypper_call("in $mpi-gnu-hpc $mpi-gnu-hpc-devel");
+    zypper_call("in openmpi");
 
     my $need_restart = $self->setup_scientific_module();
     $self->relogin_root if $need_restart;
@@ -46,7 +47,7 @@ sub run ($self) {
     type_string('pkill -u root', lf => 1) unless $user_virtio_fixed;
     select_user_serial_terminal($prompt);
     # for <15-SP2 the openmpi2 module is named simply openmpi
-    $mpi2load = ($mpi =~ /openmpi2|openmpi3|openmpi4/) ? 'openmpi' : $mpi;
+    $mpi2load = ($mpi =~ /openmpi1|openmpi2|openmpi3|openmpi4/) ? 'openmpi' : $mpi;
 
     barrier_wait('CLUSTER_PROVISIONED');
     record_info 'CLUSTER_PROVISIONED', strftime("\%H:\%M:\%S", localtime);
@@ -107,6 +108,7 @@ sub run ($self) {
                 record_soft_failure('bsc#1199811 known problem on single core on mvapich2/2.2');
             }
         } else {
+            record_info('SEB2', 'here 2');
             assert_script_run($mpirun_s->single_node("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
         }
     }
@@ -137,7 +139,10 @@ sub run ($self) {
         } else {
             # Skipping papi test on compute nodes as for some reason
             # module is not getting loaded for the c test execution
-            unless (get_var('HPC_LIB') eq 'papi') {
+            unless (get_var('HPC_LIB') eq 'papi') {            
+                record_info('SEB1', 'here 1');
+                assert_script_run('export LD_LIBRARY_PATH=/usr/lib/hpc/gnu4.8/mpi/openmpi/1.10.7/');
+                assert_script_run('echo $LD_LIBRARY_PATH');
                 assert_script_run($mpirun_s->all_nodes("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
             }
         }
