@@ -20,6 +20,7 @@ has mpirun => sub {
     push @mpirun_args, '--allow-run-as-root ' if $mpi =~ m/openmpi/;
     # avoid openmpi3 warnings since 3.1.6-150500.11.3
     # TODO: map versions with mpi
+    assert_script_run('export LD_LIBRARY_PATH=/usr/lib/hpc/gnu4.8/mpi/openmpi/1.10.7/');
     push @mpirun_args, '--mca btl_base_warn_component_unused 0 ' if ($mpi eq 'openmpi3' && $self->compare_mpi_versions("$mpi-gnu-hpc", undef, '3.1.6-150500.11.3'));
     (@mpirun_args == 0) ? $self->mpirun :
       sprintf "%s %s", $self->mpirun, join(' ', @mpirun_args);

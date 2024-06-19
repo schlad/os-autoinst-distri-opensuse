@@ -142,6 +142,7 @@ sub run ($self) {
             unless (get_var('HPC_LIB') eq 'papi') {            
                 record_info('SEB1', 'here 1');
                 assert_script_run('export LD_LIBRARY_PATH=/usr/lib/hpc/gnu4.8/mpi/openmpi/1.10.7/');
+                assert_script_run('echo $LD_LIBRARY_PATH');
                 assert_script_run($mpirun_s->all_nodes("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
             }
         }
