@@ -154,7 +154,7 @@ sub compare_mpi_versions {
     my ($self, $package_name, $v1, $v2) = @_;
     my $installed_version;
     if ($package_name) {
-        script_run("zypper se -i $package_name") == 0 || die "package is not installed";
+	    #script_run("zypper se -i $package_name") == 0 || die "package is not installed";
         $installed_version = script_output("zypper -q info $package_name | grep Version | awk '{ print \$3 }'");
     }
     $v1 ||= $installed_version || die "missing parameter: mpi package version";
