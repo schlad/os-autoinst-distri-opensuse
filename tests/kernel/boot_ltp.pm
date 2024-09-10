@@ -54,7 +54,7 @@ sub run {
     script_run('gzip -9 </dev/fb0 >framebuffer.dat.gz');
     upload_logs('framebuffer.dat.gz', failok => 1);
 
-    sleep(99999999)
+    sleep(99999999);
     assert_secureboot_status(1) if (get_var('SECUREBOOT'));
 
     log_versions;
