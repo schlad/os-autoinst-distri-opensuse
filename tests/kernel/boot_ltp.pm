@@ -12,11 +12,11 @@ use 5.018;
 use warnings;
 use base 'opensusebasetest';
 use testapi;
-use serial_terminal 'select_serial_terminal';
+use serial_terminal;
 use Utils::Backends;
 use LTP::utils;
 use version_utils qw(is_jeos is_sle);
-use utils 'assert_secureboot_status';
+use utils;
 use kdump_utils;
 
 sub run {
@@ -54,9 +54,10 @@ sub run {
     script_run('gzip -9 </dev/fb0 >framebuffer.dat.gz');
     upload_logs('framebuffer.dat.gz', failok => 1);
 
-    sleep(99999999);
     assert_secureboot_status(1) if (get_var('SECUREBOOT'));
 
+    log_versions;
+    ensure_apparmor_disabled();
     log_versions;
 
     # check kGraft patch if KGRAFT=1
