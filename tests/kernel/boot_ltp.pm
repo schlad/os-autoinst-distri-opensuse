@@ -57,11 +57,6 @@ sub run {
     assert_secureboot_status(1) if (get_var('SECUREBOOT'));
 
     log_versions;
-    unless (systemctl "is-active apparmor", proceed_on_failure => 1) {    # 0 if active, unless to revert
-        systemctl "disable --now apparmor";
-        record_info "apparmor", "disabled";
-    }
-    log_versions;
 
     # check kGraft patch if KGRAFT=1
     if (check_var('KGRAFT', '1') && !check_var('REMOVE_KGRAFT', '1')) {
