@@ -12,11 +12,11 @@ use 5.018;
 use warnings;
 use base 'opensusebasetest';
 use testapi;
-use serial_terminal 'select_serial_terminal';
+use serial_terminal;
 use Utils::Backends;
 use LTP::utils;
 use version_utils qw(is_jeos is_sle);
-use utils 'assert_secureboot_status';
+use utils;
 use kdump_utils;
 
 sub run {
