@@ -3,7 +3,7 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: FSFAP
 
-# Summary: Configure and run a warewulf4 controller
+# Summary: Configure and run a warewulf4 controller.
 # Maintainer: Kernel QE <kernel-qa@suse.de>
 
 use Mojo::Base qw(hpcbase hpc::utils), -signatures;
