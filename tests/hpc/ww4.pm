@@ -45,9 +45,6 @@ sub run ($self) {
     record_info "warewulf.conf", script_output("cat /etc/warewulf/warewulf.conf");
     record_info "defaults.conf", script_output("cat /usr/share/warewulf/defaults.conf");
 
-    # Disable proxy-scc. See: progress.opensuse.org/issues/168028
-    sleep(9999999);
-
     # Authentication support
     my $warewulf_oci_username = get_var('HPC_WAREWULF_CONTAINER_USERNAME');
     if ($warewulf_oci_username) {
@@ -56,6 +53,10 @@ sub run ($self) {
         record_info('authentication', 'container authentication is enabled');
     }
     my $hpc_container = get_required_var('HPC_WAREWULF_CONTAINER');
+
+    # Disable proxy-scc. See: progress.opensuse.org/issues/168028
+    assert_script_run(qq{sed -ri 's/^url\$/#url/g' /etc/SUSEConnect});
+
     $rt = (assert_script_run "wwctl container import $hpc_container warewulf-container --setdefault", timeout => 320) ? 1 : 0;
     test_case('Container pull', 'ww4', $rt);
     $rt = (assert_script_run "wwctl profile set -y -C warewulf-container") ? 1 : 0;
