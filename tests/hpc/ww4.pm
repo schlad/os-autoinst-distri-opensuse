@@ -3,7 +3,7 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: FSFAP
 
-# Summary: Configure and run a warewulf4 controller
+# Summary: Configure and run a warewulf4 controller.
 # Maintainer: Kernel QE <kernel-qa@suse.de>
 
 use Mojo::Base qw(hpcbase hpc::utils), -signatures;
@@ -53,6 +53,12 @@ sub run ($self) {
         record_info('authentication', 'container authentication is enabled');
     }
     my $hpc_container = get_required_var('HPC_WAREWULF_CONTAINER');
+
+    # Disable proxy-scc. See: progress.opensuse.org/issues/168028
+    record_info "DUPA1", script_output("cat /etc/SUSEConnect");
+    assert_script_run(qq{sed -i 's/url/#url/g' /etc/SUSEConnect});
+    record_info "DUPA2", script_output("cat /etc/SUSEConnect");
+
     $rt = (assert_script_run "wwctl container import $hpc_container warewulf-container --setdefault", timeout => 320) ? 1 : 0;
     test_case('Container pull', 'ww4', $rt);
     $rt = (assert_script_run "wwctl profile set -y -C warewulf-container") ? 1 : 0;
