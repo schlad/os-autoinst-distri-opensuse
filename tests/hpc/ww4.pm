@@ -56,7 +56,7 @@ sub run ($self) {
 
     # Disable proxy-scc. See: progress.opensuse.org/issues/168028
     record_info "DUPA1", script_output("cat /etc/SUSEConnect");
-    assert_script_run(qq{sed -ri 's/^url\$/#url/g' /etc/SUSEConnect});
+    assert_script_run(qq{sed -i 's/url/#url/g' /etc/SUSEConnect});
     record_info "DUPA2", script_output("cat /etc/SUSEConnect");
 
     $rt = (assert_script_run "wwctl container import $hpc_container warewulf-container --setdefault", timeout => 320) ? 1 : 0;
