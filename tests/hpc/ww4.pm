@@ -55,9 +55,9 @@ sub run ($self) {
     my $hpc_container = get_required_var('HPC_WAREWULF_CONTAINER');
 
     # Disable proxy-scc. See: progress.opensuse.org/issues/168028
-    record_info "warewulf.conf", script_output("cat /etc/warewulf/warewulf.conf");
+    record_info "DUPA1", script_output("cat /etc/SUSEConnect");
     assert_script_run(qq{sed -ri 's/^url\$/#url/g' /etc/SUSEConnect});
-    record_info "warewulf.conf", script_output("cat /etc/warewulf/warewulf.conf");
+    record_info "DUPA2", script_output("cat /etc/SUSEConnect");
 
     $rt = (assert_script_run "wwctl container import $hpc_container warewulf-container --setdefault", timeout => 320) ? 1 : 0;
     test_case('Container pull', 'ww4', $rt);
