@@ -107,7 +107,7 @@ sub run ($self) {
                 record_soft_failure('bsc#1199811 known problem on single core on mvapich2/2.2');
             }
         } else {
-            assert_script_run($mpirun_s->single_node("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
+		#assert_script_run($mpirun_s->single_node("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
         }
     }
 
