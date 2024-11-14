@@ -96,7 +96,10 @@ otherwise it will be executed as root.</code></pre>
 
 <h2 id="sles4sap_cleanup">sles4sap_cleanup</h2>
 
-<pre><code>Clean up Network peering and qesap deployment</code></pre>
+<pre><code>Clean up Network peering and qesap deployment
+This method does not internally die and try to execute
+terraform destroy in any case.
+Return 0 if no internal error.</code></pre>
 
 <dl>
 
@@ -134,7 +137,7 @@ otherwise it will be executed as root.</code></pre>
 
 <h2 id="is_hana_resource_running-is_hana_resource_running-quiet-0">is_hana_resource_running is_hana_resource_running([quiet =&gt; 0]);</h2>
 
-<pre><code>Checks if resource msl_SAPHana_* is running on given node.</code></pre>
+<pre><code>Checks if resource msl_SAPHanaCtl_* is running on given node.</code></pre>
 
 <dl>
 
@@ -165,7 +168,7 @@ otherwise it will be executed as root.</code></pre>
 <pre><code>Stops HANA database using default or specified method.
 &quot;stop&quot; - stops database using &quot;HDB stop&quot; command.
 &quot;kill&quot; - kills database processes using &quot;HDB -kill&quot; command.
-&quot;crash&quot; - crashes entire os using &quot;/proc-sysrq-trigger&quot; method.</code></pre>
+&quot;crash&quot; - crashes entire OS using &quot;/proc/sysrq-trigger&quot; method.</code></pre>
 
 <dl>
 
@@ -185,7 +188,7 @@ otherwise it will be executed as root.</code></pre>
 
 <h2 id="cleanup_resource-cleanup_resource-timeout-60">cleanup_resource cleanup_resource([timeout =&gt; 60]);</h2>
 
-<pre><code>Cleanup resource &#39;msl_SAPHana_*&#39;, wait for DB start automatically.</code></pre>
+<pre><code>Cleanup resource &#39;msl_SAPHanaCtl_*&#39;, wait for DB start automatically.</code></pre>
 
 <dl>
 
@@ -347,6 +350,18 @@ in the &quot;ansible: create:&quot; section of config.yaml file.</code></pre>
 <dd>
 
 </dd>
+<dt id="fence_type---select-Azure-native-fencing-mechanism.-Only-two-accepted-values-spn-or-msi.-This-argument-is-only-applicable-to-Azure.-optional"><b>fence_type</b> - select Azure native fencing mechanism. Only two accepted values &#39;spn&#39; or &#39;msi&#39;. This argument is only applicable to Azure. (optional)</dt>
+<dd>
+
+</dd>
+<dt id="spn_application_id---Application-ID-for-the-SPN-Azure-native-fencing-agent.This-argument-is-only-applicable-to-Azure-configured-with-native-fencing-of-type-SPN.-optional"><b>spn_application_id</b> - Application ID for the SPN Azure native fencing agent.This argument is only applicable to Azure configured with native fencing of type SPN. (optional)</dt>
+<dd>
+
+</dd>
+<dt id="spn_application_password---password-for-the-SPN-Azure-native-fencing-agent.This-argument-is-only-applicable-to-Azure-configured-with-native-fencing-of-type-SPN.-optional"><b>spn_application_password</b> - password for the SPN Azure native fencing agent.This argument is only applicable to Azure configured with native fencing of type SPN. (optional)</dt>
+<dd>
+
+</dd>
 <dt id="ptf_files---list-of-PTF-files-optional"><b>ptf_files</b> - list of PTF files (optional)</dt>
 <dd>
 
@@ -355,11 +370,11 @@ in the &quot;ansible: create:&quot; section of config.yaml file.</code></pre>
 <dd>
 
 </dd>
-<dt id="ptf_account---name-of-the-account-for-the-ptf-container"><b>ptf_account</b> - name of the account for the ptf container</dt>
+<dt id="ptf_account---name-of-the-account-for-the-ptf-container-optional"><b>ptf_account</b> - name of the account for the ptf container (optional)</dt>
 <dd>
 
 </dd>
-<dt id="ptf_container---name-of-the-container-for-PTF-files"><b>ptf_container</b> - name of the container for PTF files</dt>
+<dt id="ptf_container---name-of-the-container-for-PTF-files-optional"><b>ptf_container</b> - name of the container for PTF files (optional)</dt>
 <dd>
 
 </dd>
