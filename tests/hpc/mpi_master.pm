@@ -107,7 +107,10 @@ sub run ($self) {
                 record_soft_failure('bsc#1199811 known problem on single core on mvapich2/2.2');
             }
         } else {
-	    sleep(600);
+	    script_run('zypper addrepo http://download.suse.de/ibs/home:/NMorey:/branches:/SUSE:/SLE-15-SP7:/GA/standard/');
+	    script_run('zypper refresh');
+	    zypper_call('in libfabric');
+	    record_info('TEST', script_output('zypper info libfabric'));
             assert_script_run($mpirun_s->single_node("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
         }
     }
