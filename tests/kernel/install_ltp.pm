@@ -298,7 +298,7 @@ sub run {
     my $self = shift;
     my $inst_ltp = get_var 'INSTALL_LTP';
     my $cmd_file = get_var('LTP_COMMAND_FILE');
-    my $grub_param = 'ignore_loglevel';
+    my $grub_param = 'apparmor=0';
     my $is_ima = $cmd_file =~ m/^ima$/i;
 
     if ($inst_ltp !~ /(repo|git)/i) {
