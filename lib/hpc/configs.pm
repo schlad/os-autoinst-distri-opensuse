@@ -44,7 +44,7 @@ Default slurm.conf always set to the latest supported version
     "\#SlurmdUser" => '',
     SlurmctldPort => '6817',
     SlurmdPort => '6818',
-    AuthType => 'auth/munge',
+    AuthType => 'auth/slurm',
     "\#JobCredentialPrivateKey" => '',
     "\#JobCredentialPublicCertificate" => '',
     StateSaveLocation => '/var/lib/slurm',
