@@ -469,6 +469,7 @@ sub run ($self) {
     # munge key is distributed to all nodes, so is slurm.conf
     # and proper services are enabled and started
     # $slurm_pkg-munge is installed explicitly since slurm_23_02
+    zypper_call("in slurm-auth*");
     zypper_call("in $slurm_pkg $slurm_pkg-munge $slurm_pkg-torque");
     record_info script_output("rpm -q --queryformat='%{VERSION}' $slurm_pkg"), 'slurm version';
 
