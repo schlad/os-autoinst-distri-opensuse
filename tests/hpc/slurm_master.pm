@@ -496,6 +496,8 @@ sub run ($self) {
 
     barrier_wait('SLURM_SETUP_DBD');
 
+    sleep(99999999);
+
     $self->enable_and_start('slurmctld');
     systemctl('is-active slurmctld');
     $self->enable_and_start('slurmd');
