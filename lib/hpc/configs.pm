@@ -44,7 +44,7 @@ Default slurm.conf always set to the latest supported version
     "\#SlurmdUser" => '',
     SlurmctldPort => '6817',
     SlurmdPort => '6818',
-    AuthType => 'auth/munge',
+    AuthType => 'auth/slurm',
     "\#JobCredentialPrivateKey" => '',
     "\#JobCredentialPublicCertificate" => '',
     StateSaveLocation => '/var/lib/slurm',
@@ -249,6 +249,7 @@ sub prepare_slurmdb_conf ($self) {
 
     my $config = << "EOF";
 sed -i "/^DbdAddr.*/c\\#DbdAddr" /etc/slurm/slurmdbd.conf
+sed -i "/^AuthType.*/c\\AuthType=auth/slurm" /etc/slurm/slurmdbd.conf
 sed -i "/^DbdHost.*/c\\DbdHost=$cluster_compute_nodes[-1]" /etc/slurm/slurmdbd.conf
 sed -i "/^#StorageHost.*/c\\StorageHost=$cluster_compute_nodes[-1]" /etc/slurm/slurmdbd.conf
 sed -i "/^#StorageLoc.*/c\\StorageLoc=slurm_acct_db" /etc/slurm/slurmdbd.conf

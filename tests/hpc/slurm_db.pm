@@ -25,6 +25,7 @@ sub run ($self) {
 
     $self->prepare_user_and_group();
 
+    zypper_call("in slurm-auth*");
     # If one wants to test unversioned slurm, one should not
     # install slurm-node at all. Also slurm rpm does not
     # provide mariadb as a dependency
@@ -93,7 +94,7 @@ EOF
 
     # always upload logs from slurmdbd as those are crucial and there is no simple
     # way to get those logs if slurctld fails
-    upload_logs('/var/log/slurmdbd.log');
+    #upload_logs('/var/log/slurmdbd.log');
 
     barrier_wait("SLURM_MASTER_RUN_TESTS");
 }
