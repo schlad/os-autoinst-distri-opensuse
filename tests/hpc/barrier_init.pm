@@ -67,6 +67,9 @@ sub run ($self) {
         if (check_var('SCIPY', 'RUN')) {
             barrier_create('SCIPY_RUN_TEST', $nodes);
         }
+	if (check_var('PAPI', 'RUN')) {
+            barrier_create('PAPI_TEST_DONE', $nodes);
+        }
     }
     elsif (check_var('HPC', 'ww4_controller')) {
         barrier_create('WWCTL_READY', $nodes);
