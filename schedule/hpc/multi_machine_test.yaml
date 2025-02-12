@@ -22,6 +22,9 @@ conditional_schedule:
     SCIPY:
       RUN:
         - hpc/mpi_scipy
+    PAPI:
+      RUN:
+        - hpc/mpi_papi
   hpctest:
     HPC:
       slurm_master:
