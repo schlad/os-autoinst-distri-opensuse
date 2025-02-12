@@ -113,7 +113,7 @@ sub setup_scientific_module {
     if check_var('PAPI', 'RUN')) {
         zypper_call("in papi-hpc papi-hpc-devel");
         $self->relogin_root;
-        assert_script_run('module load gnu $lib');
+        assert_script_run('module load gnu papi');
     }
     if ($lib eq 'openblas') {
         zypper_call("in libopenblas-gnu-hpc libopenblas-gnu-hpc-devel");
