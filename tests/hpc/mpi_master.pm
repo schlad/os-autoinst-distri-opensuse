@@ -1,11 +1,15 @@
 # SUSE's openQA tests
 #
-# Copyright 2017-2021 SUSE LLC
+# Copyright 2017-2025 SUSE LLC
 # SPDX-License-Identifier: FSFAP
 
 # Summary: Basic MPI integration test. Checking for installability and
-#     usability of MPI implementations, or HPC libraries. Using mpirun locally and across
-#     available nodes. Test meant to be run in VMs, so thus using ethernet
+#     usability of MPI implementations, or HPC libraries. Using mpirun across
+#     available nodes in the multimachine set-up. Test meant to be run in VMs, so
+#     thus using ethernet. The mpi master test module serves as a basic set-up script
+#     with minimal tests to be run - only specific mpi multimachine test for given MPI
+#     implementation
+#
 # Maintainer: Kernel QE <kernel-qa@suse.de>
 
 use Mojo::Base qw(hpcbase hpc::utils), -signatures;
@@ -97,19 +101,6 @@ sub run ($self) {
     barrier_wait('MPI_BINARIES_READY');
     record_info 'MPI_BINARIES_READY', strftime("\%H:\%M:\%S", localtime);
     my $mpirun_s = hpc::formatter->new();
-
-    unless ($mpi_c eq 'sample_cplusplus.cpp') {    # because calls expects minimum 2 nodes
-        record_info('INFO', 'Run MPI over single machine');
-        if ($mpi eq 'mvapich2') {
-            # mvapich2/2.2 known issue
-            my $return = script_run("set -o pipefail;" . $mpirun_s->single_node("$exports_path{'bin'}/$mpi_bin |& tee /tmp/mpi_bin.log"), timeout => 120);
-            if (script_run('grep \'invalid error code ffffffff\' /tmp/mpi_bin.log') == 0) {
-                record_soft_failure('bsc#1199811 known problem on single core on mvapich2/2.2');
-            }
-        } else {
-            assert_script_run($mpirun_s->single_node("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
-        }
-    }
 
     record_info('INFO', 'Run MPI over several nodes');
     if ($mpi eq 'mvapich2') {
