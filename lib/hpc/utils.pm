@@ -94,7 +94,7 @@ When subroutine returns immediately returns 1 to indicate that no relogin has oc
 
 sub setup_scientific_module {
     my ($self) = @_;
-    return 1 unless get_var('HPC_LIB', '') or check_var('SCIPY', 'RUN');
+    return 1 unless get_var('HPC_LIB', '') or check_var('SCIPY', 'RUN') or check_var('PAPI', 'RUN');
     my $mpi = get_required_var('MPI');
     my $lib = get_var('HPC_LIB', '');
         if (check_var('SCIPY', 'RUN')) {
@@ -110,7 +110,7 @@ sub setup_scientific_module {
         assert_script_run "module load gnu $mpi2load python3-scipy";
         assert_script_run("env MPICC=mpicc python3 -m pip install mpi4py", timeout => 1200);
     }
-    if ($lib eq 'papi') {
+    if check_var('PAPI', 'RUN')) {
         zypper_call("in papi-hpc papi-hpc-devel");
         $self->relogin_root;
         assert_script_run('module load gnu $lib');

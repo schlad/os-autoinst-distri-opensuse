@@ -50,6 +50,7 @@ sub run ($self) {
     #assert_script_run "module load gnu @load_modules python3-scipy";
     #assert_script_run("env MPICC=mpicc python3 -m pip install mpi4py", timeout => 1200);
     script_run "module av";
+    my $return = script_run("set -o pipefail;" . $mpirun_s->all_nodes("$exports_path{'bin'}/$mpi_bin |& tee /tmp/mpi_bin.log"), timeout => 120);
     assert_script_run($mpirun_s->all_nodes("$exports_path{'bin'}/$mpi_bin"), timeout => 120);
     #assert_script_run("mpirun --host $cluster_nodes python3 $exports_path{'bin'}/$mpi_bin");
     barrier_wait('PAPI_TEST_DONE');
