@@ -48,6 +48,9 @@ sub run ($self) {
     select_user_serial_terminal($prompt);
     # load mpi after all the relogins
     my @load_modules = $mpi2load;
+
+    assert_script_run('module load gnu papi');
+
     #assert_script_run "module load gnu @load_modules python3-scipy";
     #assert_script_run("env MPICC=mpicc python3 -m pip install mpi4py", timeout => 1200);
     script_run "module av";
