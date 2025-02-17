@@ -34,6 +34,12 @@ sub run ($self) {
     if (check_var('IMB', 'RUN')) {
         barrier_wait('IMB_TEST_DONE');
     }
+    if (check_var('SCIPY', 'RUN')) {
+        barrier_wait('SCIPY_RUN_TEST');
+    }
+    if (check_var('PAPI', 'RUN')) {
+        barrier_wait('PAPI_TEST_DONE');
+    }
 }
 
 sub test_flags ($self) {
