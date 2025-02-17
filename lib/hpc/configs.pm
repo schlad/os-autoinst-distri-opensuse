@@ -177,7 +177,7 @@ sub prepare_slurm_conf ($self) {
     }
     if (($slurm_conf eq 'ha') or ($slurm_conf eq 'nfs_db')) {
         $slurm_config{SlurmctldHost_tmp} = "$cluster_ctl_nodes[1]";
-        $slurm_config{StateSaveLocation} = '/shared/slurm/';
+        $slurm_config{StateSaveLocation} = '/shared/slurm/testFile';
         $slurm_config{SlurmctldTimeout} = '15';
         $slurm_config{SlurmdTimeout} = '60';
     }
