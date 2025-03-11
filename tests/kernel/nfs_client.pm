@@ -17,7 +17,7 @@ use utils;
 sub run {
     select_serial_terminal();
     record_info("hostname", script_output("hostname"));
-    my $server_node = get_var('SERVER_NODE', 'server-node00');
+    my $server_node = get_var('SERVER_NODE', '10.162.3.82');
 
     my $local_nfs3 = get_var('NFS_LOCAL_NFS3', '/home/localNFS3');
     my $local_nfs3_async = get_var('NFS_LOCAL_NFS3_ASYNC', '/home/localNFS3async');
