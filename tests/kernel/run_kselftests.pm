@@ -99,6 +99,7 @@ sub run
             parse_extra_log(TAP => "$i.tap");
         }
     }
+    sleep(99999);
 }
 
 1;
