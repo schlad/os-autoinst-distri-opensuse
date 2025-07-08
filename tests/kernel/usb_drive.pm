@@ -19,6 +19,21 @@ sub run {
 
     select_serial_terminal;
 
+    record_info("INFO: usb-devices", script_output('usb-devices'));
+    # Optional USB serial match check
+    my $whitelisted_usb = get_var('USB_SERIAL');
+    if ($whitelisted_usb) {
+        my $usb_serials = script_output("usb-devices | grep SerialNumber", proceed_on_failure => 1);
+        die "No USB device serials found" unless $usb_serials;
+
+        my @serials = map { s/.*SerialNumber=//r } split /\n/, $usb_serials;
+        my $matched = grep { $_ eq $whitelisted_usb } @serials;
+
+        die "Expected USB serial '$whitelisted_usb' not found among: @serials" unless $matched;
+        record_info("USB Serial", "Expected USB serial found: $whitelisted_usb");
+    }
+
+
     my $lun = script_output 'lsscsi -t -v | awk -F" " \'/usb/ {split($2,a,/[\/]/); print a[6]}\'';
     die "no usb storage device connected" if $lun eq "";
 
