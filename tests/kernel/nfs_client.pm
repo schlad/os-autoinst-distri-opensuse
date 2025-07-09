@@ -64,8 +64,8 @@ sub run {
     if ($kernel_nfs4 == 1) {
         record_info('INFO', 'Kernel has support for NFSv4');
         assert_script_run("mkdir $local_nfs4 $local_nfs4_async");
-        assert_script_run("mount -t nfs -o nfsvers=4,sync $server_node:/nfs/shared_nfs4 $local_nfs4");
-        assert_script_run("mount -t nfs -o nfsvers=4 $server_node:/nfs/shared_nfs4_async $local_nfs4_async");
+        assert_script_run("mount -t nfs -o nfsvers=4.2,sync $server_node:/nfs/shared_nfs4 $local_nfs4");
+        assert_script_run("mount -t nfs -o nfsvers=4.2 $server_node:/nfs/shared_nfs4_async $local_nfs4_async");
     } else {
         record_info('INFO', 'Kernel has no support for NFSv4, skipping NFSv4tests');
     }
