@@ -53,8 +53,7 @@ sub run {
     assert_script_run('cd /usr/lib/blktests');
 
     foreach my $i (@tests) {
-        script_run("./check --quick=$quick --exclude=block/011 --exclude=block/012 --exclude=block/013 --exclude=block/014 --exclude=block/015 --exclude=block/016 --exclude=block/017 --exclude=block/018 --exclude=block/019 --exclude=block/020 --exclude=block/021 --exclude=block/022 --exclude=block/023 --exclude=block/024 --exclude=block/025 --exclude=block/026 --exclude=block/027 --exclude=block/028 --exclude=block/029 --exclude=block/030 --exclude=block/031 --exclude=block/032 --exclude=block/033 --exclude=block/034 --exclude=block/035 --exclude=block/036 --exclude=block/037 --exclude=block/038 --exclude=block/039
- $i", 480);
+        script_run("./check --quick=$quick --exclude=block/011 --exclude=block/012 --exclude=block/013 --exclude=block/014 --exclude=block/015 --exclude=block/016 --exclude=block/017 --exclude=block/018 --exclude=block/019 --exclude=block/020 --exclude=block/021 --exclude=block/022 --exclude=block/023 --exclude=block/024 --exclude=block/025 --exclude=block/026 --exclude=block/027 --exclude=block/028 --exclude=block/029 --exclude=block/030 --exclude=block/031 --exclude=block/032 --exclude=block/033 --exclude=block/034 --exclude=block/035 --exclude=block/036 --exclude=block/037 --exclude=block/038 --exclude=block/039 $i", 480);
 
 #--exclude=block/012 --exclude=block/013 --exclude=block/014 --exclude=block/015 --exclude=block/016 --exclude=block/017 --exclude=block/018 --exclude=block/019 --exclude=block/020 --exclude=block/021 --exclude=block/022 --exclude=block/023 --exclude=block/024 --exclude=block/025 --exclude=block/026 --exclude=block/027 --exclude=block/028 --exclude=block/029 --exclude=block/030 --exclude=block/031 --exclude=block/032 --exclude=block/033 --exclude=block/034 --exclude=block/035 --exclude=block/036 --exclude=block/037 --exclude=block/038 --exclude=block/039
 
