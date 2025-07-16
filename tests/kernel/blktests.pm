@@ -67,6 +67,7 @@ sub run {
 
     record_info('XML', script_output('ls ./'));
     my $output = script_output('find /usr/lib/blktests -name "*_results.xml" 2>/dev/null || true');
+    sleep(999999999);
     foreach my $file (split /\n/, $output) {
         parse_extra_log('XUnit', $file);
     }
