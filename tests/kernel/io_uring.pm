@@ -52,7 +52,7 @@ sub run {
     assert_script_run("./configure");
     assert_script_run("make -C src");
     assert_script_run("make -C test");
-
+    sleep(12000);
     # create environment information for known issues check
     my $environment = {
         product => get_var('DISTRI') . ':' . get_var('VERSION'),
