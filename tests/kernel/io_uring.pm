@@ -47,7 +47,7 @@ sub run {
     # download and compile tests
     assert_script_run("git clone --no-single-branch $repository");
     assert_script_run("cd liburing");
-    #assert_script_run("git checkout liburing-2.9");
+    assert_script_run("git checkout schlad");
     record_info("test version", script_output("git log -1 --oneline"));
     assert_script_run("./configure");
     assert_script_run("make -C src");
