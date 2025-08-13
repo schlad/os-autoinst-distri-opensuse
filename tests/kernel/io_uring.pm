@@ -14,6 +14,7 @@ use testapi;
 use serial_terminal 'select_serial_terminal';
 use utils;
 use LTP::WhiteList;
+use List::Util 'max';
 
 sub run {
     my $self = shift;
@@ -21,16 +22,45 @@ sub run {
     select_serial_terminal;
 
     my $repository = get_var('LIBURING_REPO', 'https://github.com/axboe/liburing.git');
-    my $timeout = get_var('LIBURING_TIMEOUT', 1800);
-    my $version = get_var('LIBURING_VERSION', '');
-    my $exclude = get_var('LIBURING_EXCLUDE', '');
-    my $issues = get_var('LIBURING_KNOWN_ISSUES', '');
-    my $whitelist = LTP::WhiteList->new($issues);
-    my $pkgs = "git-core";
+    my $timeout    = get_var('LIBURING_TIMEOUT', 1800);
+    my $version    = get_var('LIBURING_VERSION', '');
+    my $exclude    = get_var('LIBURING_EXCLUDE', '');
+    my $issues     = get_var('LIBURING_KNOWN_ISSUES', '');
+    my $whitelist  = LTP::WhiteList->new($issues);
+    my $pkgs       = "git-core";
     my @lines;
     my $out;
 
     record_info('KERNEL', script_output('rpm -qi kernel-default'));
+
+    # --- NEW: record key TCP / socket buffer sysctls for triage ---
+    my @net_keys = qw(
+      net.core.rmem_default
+      net.core.rmem_max
+      net.core.wmem_default
+      net.core.wmem_max
+      net.ipv4.tcp_rmem
+      net.ipv4.tcp_wmem
+      net.ipv4.tcp_moderate_rcvbuf
+      net.ipv4.tcp_no_metrics_save
+      net.ipv4.tcp_low_latency
+      net.ipv4.tcp_timestamps
+      net.ipv4.tcp_sack
+    );
+    my $net_info = "";
+    foreach my $k (@net_keys) {
+        # Use /proc/sys path to avoid localization, then normalize spaces
+        (my $path = $k) =~ s/\./\//g;
+        my $val = script_output("cat /proc/sys/$path 2>/dev/null || sysctl -n $k 2>/dev/null || echo _NA_");
+        $val =~ s/\s+/ /g;
+        $net_info .= sprintf("%-24s = %s\n", $k, $val);
+    }
+    $net_info .= "\n" .
+                 "sockstat:\n" . script_output('cat /proc/net/sockstat', proceed_on_failure => 1) . "\n" .
+                 "sockstat6:\n" . script_output('cat /proc/net/sockstat6', proceed_on_failure => 1);
+    record_info('NET SYSCTLS', $net_info);
+    # --- end NEW ---
+
     # check if liburing2 is installed and eventually install it
     $pkgs .= " liburing2" if script_run('rpm -q liburing2');
 
@@ -55,15 +85,15 @@ sub run {
 
     # create environment information for known issues check
     my $environment = {
-        product => get_var('DISTRI') . ':' . get_var('VERSION'),
-        revision => get_var('BUILD'),
-        flavor => get_var('FLAVOR'),
-        arch => get_var('ARCH'),
-        backend => get_var('BACKEND'),
-        kernel => script_output('uname -r'),
-        libc => '',
-        gcc => '',
-        harness => 'SUSE OpenQA',
+        product     => get_var('DISTRI') . ':' . get_var('VERSION'),
+        revision    => get_var('BUILD'),
+        flavor      => get_var('FLAVOR'),
+        arch        => get_var('ARCH'),
+        backend     => get_var('BACKEND'),
+        kernel      => script_output('uname -r'),
+        libc        => '',
+        gcc         => '',
+        harness     => 'SUSE OpenQA',
         ltp_version => $version
     };
 
@@ -83,9 +113,17 @@ sub run {
 
     $out = script_output(
         "make -C test runtests",
-        timeout => $timeout,
+        timeout            => $timeout,
         proceed_on_failure => 1
     );
+
+    # --- NEW: capture a few post-run TCP stats too (optional, best-effort) ---
+    my $tcp_stats = "";
+    $tcp_stats .= "netstat -s (tcp excerpt):\n" .
+                  script_output("netstat -s | sed -n '/Tcp:/,/Udp:/p' 2>/dev/null", proceed_on_failure => 1) . "\n";
+    $tcp_stats .= "ss -s:\n" . script_output("ss -s 2>/dev/null", proceed_on_failure => 1);
+    record_info('NET STATS', $tcp_stats);
+    # --- end NEW ---
 
     # search for timed out tests
     my @timeouts;
