@@ -30,6 +30,7 @@ sub install_from_git
 
     my $git_tree = get_var('KERNEL_GIT_TREE', 'https://github.com/torvalds/linux.git');
     my $git_tag = get_var('KERNEL_GIT_TAG', '');
+    assert_script_run("python3 -m pip install --user jsonschema PyYAML");
     zypper_call('in bc git-core ncurses-devel gcc flex bison libelf-devel libopenssl-devel');
     assert_script_run("git clone --depth 1 --single-branch --branch master $git_tree linux", 240);
 
