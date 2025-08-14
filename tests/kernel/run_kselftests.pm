@@ -41,6 +41,8 @@ sub install_from_git
         assert_script_run("git checkout $git_tag");
     }
 
+    add_suseconnect_product(get_addon_fullname('phub'));
+    zypper_call('in clang');
     assert_script_run('export CPPFLAGS+=" $(pkg-config --cflags libmnl)"');
     assert_script_run('export LDLIBS+=" $(pkg-config --libs libmnl)"');
     assert_script_run("make -j `nproc` -C tools/testing/selftests install TARGETS=$collection", 7200);
