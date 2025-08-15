@@ -109,7 +109,7 @@ sub post_process {
         # We synthesize indices for normalized KTAP subtests; keep monotonic if mixed with numbered lines
         my $sub_idx = 1;
         for my $test_ln (@log) {
-            # 1) Normalize L2TP-style lines:
+            # Normalize L2TP-style lines:
             #    "# TEST: <title>            [ OK ]"
             if ($test_ln =~ /^#\s*TEST:\s+(.*?)\s+\[\s*(OK|FAIL|SKIP|XFAIL|XPASS|ERROR|WARN)\s*\]\s*$/i) {
                 my ($title, $st) = ($1, uc $2);
@@ -125,7 +125,7 @@ sub post_process {
                     $normalized = "# ok $sub_idx $title # TODO Expected failure";
                 }
                 else {
-                    # FAIL / ERROR / WARN
+                    #FAIL / ERROR / WARN
                     if ($whitelist->find_whitelist_entry($env, $collection, $title)) {
                         $self->{result} = 'softfail';
                         record_info("Known Issue", "$test:$title marked as softfail");
@@ -141,7 +141,7 @@ sub post_process {
                 next;
             }
 
-            # 2) Already-normal KTAP failure lines with explicit index
+            # Already-normal KTAP failure lines with explicit index
             if ($test_ln =~ /^# not ok (\d+)\s+(.+)/) {
                 my ($subtest_idx, $subtest_name) = ($1, $2);
                 if ($whitelist->find_whitelist_entry($env, $collection, $subtest_name)) {
@@ -157,7 +157,7 @@ sub post_process {
                 next;
             }
 
-            # 3) Already-normal KTAP success/skip lines with explicit index
+            #Already-normal KTAP success/skip lines with explicit index
             if ($test_ln =~ /^# ok (\d+)\s+(.+)/) {
                 push(@full_ktap, $test_ln);
                 my $seen_idx = $1;
@@ -165,7 +165,7 @@ sub post_process {
                 next;
             }
 
-            # 4) Anything else: forward as-is
+            #Anything else: forward as-is
             push(@full_ktap, $test_ln);
         }
 
