@@ -35,7 +35,7 @@ sub install_from_git
     #add_suseconnect_product(get_addon_fullname('phub'));
     script_run("suseconnect -p PackageHub/16.0/x86_64 --gpg-auto-import-keys");
 
-    script_run('zypper in clang');
+    script_run('zypper in -y clang');
     assert_script_run("git clone --depth 1 --single-branch --branch master $git_tree linux", 240);
 
     assert_script_run("cd ./linux");
