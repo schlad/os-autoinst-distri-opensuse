@@ -32,7 +32,9 @@ sub install_from_git
     my $git_tag = get_var('KERNEL_GIT_TAG', '');
     assert_script_run("python3 -m pip install --user jsonschema PyYAML");
     zypper_call('in bc git-core ncurses-devel gcc flex bison libelf-devel libopenssl-devel libmnl-devel');
-    add_suseconnect_product(get_addon_fullname('phub'));
+    #add_suseconnect_product(get_addon_fullname('phub'));
+    script_run("suseconnect -p PackageHub/16.0/x86_64 --gpg-auto-import-keys");
+
     zypper_call('in clang');
     assert_script_run("git clone --depth 1 --single-branch --branch master $git_tree linux", 240);
 
