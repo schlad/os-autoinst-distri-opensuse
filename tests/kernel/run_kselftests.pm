@@ -105,10 +105,45 @@ sub post_process {
         my @log = split(/\n/, script_output("cat /tmp/$test_name"));    # When using `--per-test-log`, that's where they are found
         my $hardfails = 0;
         my $fails = 0;
+
+        # We synthesize indices for normalized KTAP subtests; keep monotonic if mixed with numbered lines
+        my $sub_idx = 1;
         for my $test_ln (@log) {
-            if ($test_ln =~ /^# not ok (\d+) (\S+)/) {
-                my $subtest_idx = $1;
-                my $subtest_name = $2;
+            # 1) Normalize L2TP-style lines:
+            #    "# TEST: <title>            [ OK ]"
+            if ($test_ln =~ /^#\s*TEST:\s+(.*?)\s+\[\s*(OK|FAIL|SKIP|XFAIL|XPASS|ERROR|WARN)\s*\]\s*$/i) {
+                my ($title, $st) = ($1, uc $2);
+                my $normalized;
+
+                if ($st eq 'OK' or $st eq 'XPASS') {
+                    $normalized = "# ok $sub_idx $title";
+                }
+                elsif ($st eq 'SKIP') {
+                    $normalized = "# ok $sub_idx $title # SKIP";
+                }
+                elsif ($st eq 'XFAIL') {
+                    $normalized = "# ok $sub_idx $title # TODO Expected failure";
+                }
+                else {
+                    # FAIL / ERROR / WARN
+                    if ($whitelist->find_whitelist_entry($env, $collection, $title)) {
+                        $self->{result} = 'softfail';
+                        record_info("Known Issue", "$test:$title marked as softfail");
+                        $normalized = "# ok $sub_idx $title # TODO Known Issue";
+                    } else {
+                        $normalized = "# not ok $sub_idx $title";
+                        $hardfails++;
+                    }
+                    $fails++;
+                }
+                push(@full_ktap, $normalized);
+                $sub_idx++;
+                next;
+            }
+
+            # 2) Already-normal KTAP failure lines with explicit index
+            if ($test_ln =~ /^# not ok (\d+)\s+(.+)/) {
+                my ($subtest_idx, $subtest_name) = ($1, $2);
                 if ($whitelist->find_whitelist_entry($env, $collection, $subtest_name)) {
                     $self->{result} = 'softfail';
                     record_info("Known Issue", "$test:$subtest_name marked as softfail");
@@ -117,7 +152,20 @@ sub post_process {
                     $hardfails++;
                 }
                 $fails++;
+                push(@full_ktap, $test_ln);
+                $sub_idx = $sub_idx <= $subtest_idx ? $subtest_idx + 1 : $sub_idx;
+                next;
             }
+
+            # 3) Already-normal KTAP success/skip lines with explicit index
+            if ($test_ln =~ /^# ok (\d+)\s+(.+)/) {
+                push(@full_ktap, $test_ln);
+                my $seen_idx = $1;
+                $sub_idx = $sub_idx <= $seen_idx ? $seen_idx + 1 : $sub_idx;
+                next;
+            }
+
+            # 4) Anything else: forward as-is
             push(@full_ktap, $test_ln);
         }
 
