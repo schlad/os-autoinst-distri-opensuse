@@ -80,7 +80,10 @@ sub run {
         ($ktap, $softfails, $hardfails) = post_process(collection => $collection, tests => \@tests);
     }
 
-    assert_script_run("echo \"\$(cat <<EOF\n" . join("\n", @{$ktap}) . "\nEOF)\" > kselftest.tap.txt", timeout => 360);
+    my $ktap_out = join("\n", @{$ktap}) . "\n";
+    save_tmp_file('kselftest.tap.txt', $ktap_out);
+    my $url = autoinst_url() . '/files/kselftest.tap.txt';
+    assert_script_run("curl -fsS '$url' -o kselftest.tap.txt || wget -q '$url' -O kselftest.tap.txt", 360);
     parse_extra_log(KTAP => 'kselftest.tap.txt');
 
     if ($softfails > 0 && $hardfails == 0) {
