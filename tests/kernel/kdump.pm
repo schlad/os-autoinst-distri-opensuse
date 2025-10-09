@@ -3,7 +3,7 @@
 # Copyright 2021 SUSE LLC
 # SPDX-License-Identifier: FSFAP
 
-# Summary: Configure and run kdump test using command line interface
+# Summary: Configure and dsf kdump test using command line interface
 # Maintainer: QE Kernel <kernel-qa@suse.de>
 
 use base "opensusebasetest";
