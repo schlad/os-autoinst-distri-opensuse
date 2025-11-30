@@ -79,6 +79,7 @@ sub run ($self) {
         barrier_wait 'IPSEC_TRANSPORT_MODE_SETUP_DONE';
         assert_script_run("ping6 -c 8 $setup->{right_ip}");
         assert_script_run("ping6 -s 1300 -c 8 $setup->{right_ip}");
+        sleep(9999999);
         barrier_wait 'IPSEC_TRANSPORT_MODE_CHECK_DONE';
     }
 
