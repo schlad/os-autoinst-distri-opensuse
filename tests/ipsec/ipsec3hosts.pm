@@ -57,29 +57,33 @@ sub run ($self) {
         $self->add_ipv6_addr(ip => $setup->{left_ip}, plen => $self->get_net_prefix_len($setup->{left_net}));
         $self->check_ipv6_addr();
         barrier_wait 'IPSEC_IP_SETUP_DONE';
+        record_info('TEST01', "");
         script_retry("ping -c 1 $setup->{middle_ip_01}", retry => 5);
         record_info('IP NEIGHBOR', script_output('ip neighbor show', proceed_on_failure => 1));
         $self->add_ipv6_route(dst => $setup->{right_ip}, via => $setup->{middle_ip_01});
         barrier_wait 'IPSEC_ROUTE_SETUP_DONE';
         record_info('IP ADDRESS', script_output('ip a', proceed_on_failure => 1));
         record_info('IP ROUTE', script_output('ip -6 route', proceed_on_failure => 1));
+        record_info('TEST02', "");
         script_retry("ping -c 1 $setup->{middle_ip_01}", retry => 5);
         script_retry("ping -c 1 $setup->{right_ip}", retry => 5);
         barrier_wait 'IPSEC_ROUTE_SETUP_CHECK_DONE';
         $self->config_ipsec($ipsec_setting_left);
         barrier_wait 'IPSEC_TUNNEL_MODE_SETUP_DONE';
-        assert_script_run("ping -c 8 $setup->{right_ip}");
-        assert_script_run("ping6 -s 1300 -c 8 $setup->{right_ip}");
+        record_info('TEST03', "");
+        assert_script_run("ping -c 20 $setup->{right_ip}");
+        assert_script_run("ping6 -s 1300 -c 20 $setup->{right_ip}");
         barrier_wait 'IPSEC_SET_MTU_DONE';
+        record_info('TEST04', "");
         assert_script_run("ping6 -c 8 $setup->{right_ip}");
         assert_script_run("ping6 -s 1300 -c 8 $setup->{right_ip}");
         barrier_wait 'IPSEC_TUNNEL_MODE_CHECK_DONE';
         $self->{ipsec_mode} = "transport";
         $self->config_ipsec($ipsec_setting_left);
         barrier_wait 'IPSEC_TRANSPORT_MODE_SETUP_DONE';
-        assert_script_run("ping6 -c 8 $setup->{right_ip}");
-        assert_script_run("ping6 -s 1300 -c 8 $setup->{right_ip}");
-        sleep(9999999);
+        record_info('TEST05', "");
+        assert_script_run("ping6 -c 20 $setup->{right_ip}");
+        assert_script_run("ping6 -s 1300 -c 20 $setup->{right_ip}");
         barrier_wait 'IPSEC_TRANSPORT_MODE_CHECK_DONE';
     }
 
