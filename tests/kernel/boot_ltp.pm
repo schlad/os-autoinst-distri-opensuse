@@ -45,8 +45,7 @@ sub run {
     if (get_var('GRUB_ARGS') && is_bootloader_grub2_bls()) {
         select_serial_terminal;
 
-        my @args = split(/,/, get_var('GRUB_ARGS'));
-        my $args_str = join(' ', @args);
+        my @args = get_var('GRUB_ARGS') =~ s/,/ /g;
 
         assert_script_run("sed -i 's/\$/ $args_str/' /etc/kernel/cmdline");
         script_output("cat /etc/kernel/cmdline");
