@@ -18,7 +18,7 @@ conditional_schedule:
         ROLE:
             nfs_server:
                 - kernel/nfs_barriers
-    nfstest:
+    nfs_test:
         ROLE:
             nfs_server:
                 - kernel/nfs_server
@@ -38,7 +38,7 @@ schedule:
     - console/system_prepare
     - console/force_scheduled_tasks
     - kernel/before_nfs_test
-    - '{{nfstest}}'
+    - '{{nfs_test}}'
     - kernel/nfs_stress_ng
     - kernel/before_ltp_nfs_test
     - kernel/install_ltp
