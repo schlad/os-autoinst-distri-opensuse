@@ -24,18 +24,6 @@ conditional_schedule:
                 - kernel/nfs_server
             nfs_client:
                 - kernel/nfs_client
-    ltp_prepare:
-        ROLE:
-            nfs_server:
-                - kernel/before_ltp_nfs_test
-            nfs_client:
-                - kernel/before_ltp_nfs_test
-    ltp_client:
-        ROLE:
-            nfs_server:
-                - kernel/install_ltp
-            nfs_client:
-                - kernel/install_ltp
     ltp_server_wait:
         ROLE:
             nfs_server:
@@ -52,6 +40,6 @@ schedule:
     - kernel/before_nfs_test
     - '{{nfstest}}'
     - kernel/nfs_stress_ng
-    - '{{ltp_prepare}}'
-    - '{{ltp_client}}'
+    - kernel/before_ltp_nfs_test
+    - kernel/install_ltp
     - '{{ltp_server_wait}}'
