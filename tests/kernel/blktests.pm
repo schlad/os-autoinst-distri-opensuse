@@ -47,6 +47,7 @@ sub run {
     zypper_call('in blktests');
     zypper_call('in fio');
 
+    sleep 999999;
     prepare_blktests_config($devices);
 
     my @tests = split(',', $tests);
