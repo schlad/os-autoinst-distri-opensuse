@@ -53,6 +53,23 @@ sub compare_checksums {
     die "checksums differ $md5 : $new_md5" unless ($md5 eq $new_md5);
 }
 
+sub probe_showmount_exports {
+    my ($server) = @_;
+
+    my $exports = script_output("showmount -e $server", timeout => 180);
+    record_info("showmount $server", $exports);
+
+    my @expected_exports = grep { $_ ne '' } split(/\s*,\s*/, get_var('NFS_EXPECTED_EXPORTS', get_var('NFS_SHARE', '')));
+    assert_script_run("showmount -e $server | grep -F -- '$_'") for @expected_exports;
+}
+
+sub mount_external_share {
+    my ($server, $share, $mountpoint, $mount_opts) = @_;
+
+    assert_script_run "mkdir -p $mountpoint";
+    assert_script_run "mount -t nfs -o $mount_opts $server:$share $mountpoint";
+}
+
 sub run {
     my $self = @_;
     my $kernel_nfs3 = 0;
@@ -62,14 +79,32 @@ sub run {
     my $kernel_nfsd_v3 = 0;
     my $kernel_nfsd_v4 = 0;
     my $client = get_var('CLIENT_NODE', 'client-node00');
+    my $use_external_shares = get_var('NFS_EXTERNAL_SHARES', '0');
+    my $showmount_only = get_var('NFS_SHOWMOUNT_ONLY', '0');
+    my $nfs_server = $use_external_shares eq '1' ? get_required_var('NFS_SERVER') : get_var('SERVER_NODE', 'server-node00');
+    $nfs_server = get_required_var('NFS_SERVER') if $showmount_only eq '1';
 
     select_serial_terminal();
     record_info("hostname", script_output("hostname"));
 
-    my $nfs_mount_nfs3 = get_var('NFS_MOUNT_NFS3', '/nfs/shared_nfs3');
-    my $nfs_mount_nfs3_async = get_var('NFS_MOUNT_NFS3_ASYNC', '/nfs/shared_nfs3_async');
-    my $nfs_mount_nfs4 = get_var('NFS_MOUNT_NFS4', '/nfs/shared_nfs4');
-    my $nfs_mount_nfs4_async = get_var('NFS_MOUNT_NFS4_ASYNC', '/nfs/shared_nfs4_async');
+    if ($showmount_only eq '1') {
+        zypper_call("in nfs-client");
+        probe_showmount_exports($nfs_server);
+        barrier_wait("NFS_SERVER_ENABLED");
+        barrier_wait("NFS_CLIENT_ENABLED");
+        barrier_wait("NFS_SERVER_CHECK");
+        return;
+    }
+
+    my $nfs_share = get_var('NFS_SHARE');
+    my $nfs_mount_nfs3 = get_var('NFS_SHARE_NFS3', $nfs_share // get_var('NFS_MOUNT_NFS3', '/nfs/shared_nfs3'));
+    my $nfs_mount_nfs3_async = get_var('NFS_SHARE_NFS3_ASYNC', $nfs_share // get_var('NFS_MOUNT_NFS3_ASYNC', '/nfs/shared_nfs3_async'));
+    my $nfs_mount_nfs4 = get_var('NFS_SHARE_NFS4', $nfs_share // get_var('NFS_MOUNT_NFS4', '/nfs/shared_nfs4'));
+    my $nfs_mount_nfs4_async = get_var('NFS_SHARE_NFS4_ASYNC', $nfs_share // get_var('NFS_MOUNT_NFS4_ASYNC', '/nfs/shared_nfs4_async'));
+    my $nfs_check_nfs3 = $use_external_shares eq '1' ? get_var('NFS_CHECK_NFS3', '/mnt/netapp_nfs3') : $nfs_mount_nfs3;
+    my $nfs_check_nfs3_async = $use_external_shares eq '1' ? get_var('NFS_CHECK_NFS3_ASYNC', '/mnt/netapp_nfs3_async') : $nfs_mount_nfs3_async;
+    my $nfs_check_nfs4 = $use_external_shares eq '1' ? get_var('NFS_CHECK_NFS4', '/mnt/netapp_nfs4') : $nfs_mount_nfs4;
+    my $nfs_check_nfs4_async = $use_external_shares eq '1' ? get_var('NFS_CHECK_NFS4_ASYNC', '/mnt/netapp_nfs4_async') : $nfs_mount_nfs4_async;
 
     my $nfs_permissions = get_var('NFS_PERMISSIONS', 'rw,sync,no_root_squash');
     my $nfs_permissions_async = get_var('NFS_PERMISSIONS_ASYNC', 'rw,async,no_root_squash');
@@ -87,35 +122,54 @@ sub run {
     my $file_flag_dsync = 'testfile_oflag_dsync';
     my $file_flag_sync = 'testfile_oflag_sync';
 
-    # provision NFS server(s) of various types
-    zypper_call("in nfs-kernel-server");
+    if ($use_external_shares eq '1') {
+        zypper_call("in nfs-client");
+        record_info("showmount", script_output("showmount -e $nfs_server", proceed_on_failure => 1));
+    } else {
+        # provision NFS server(s) of various types
+        zypper_call("in nfs-kernel-server");
+    }
 
     # configure our exports
     if ($kernel_nfs3 == 1) {
         record_info('INFO', 'Kernel has support for NFSv3');
-        create_mount_and_export($nfs_mount_nfs3, $client, $nfs_permissions);
-        create_mount_and_export($nfs_mount_nfs3_async, $client, $nfs_permissions_async);
+        if ($use_external_shares eq '1') {
+            mount_external_share($nfs_server, $nfs_mount_nfs3, $nfs_check_nfs3, 'nfsvers=3,sync');
+            mount_external_share($nfs_server, $nfs_mount_nfs3_async, $nfs_check_nfs3_async, 'nfsvers=3');
+        } else {
+            create_mount_and_export($nfs_mount_nfs3, $client, $nfs_permissions);
+            create_mount_and_export($nfs_mount_nfs3_async, $client, $nfs_permissions_async);
+        }
     } else {
         record_info('INFO', 'Kernel has no support for NFSv3, skipping NFSv3 tests');
     }
     if ($kernel_nfs4 == 1) {
         record_info('INFO', 'Kernel has support for NFSv4');
-        create_mount_and_export($nfs_mount_nfs4, $client, $nfs_permissions);
-        create_mount_and_export($nfs_mount_nfs4_async, $client, $nfs_permissions_async);
+        if ($use_external_shares eq '1') {
+            mount_external_share($nfs_server, $nfs_mount_nfs4, $nfs_check_nfs4, 'nfsvers=4,sync');
+            mount_external_share($nfs_server, $nfs_mount_nfs4_async, $nfs_check_nfs4_async, 'nfsvers=4');
+        } else {
+            create_mount_and_export($nfs_mount_nfs4, $client, $nfs_permissions);
+            create_mount_and_export($nfs_mount_nfs4_async, $client, $nfs_permissions_async);
+        }
     } else {
         record_info('INFO', 'Kernel has no support for NFSv4, skipping NFSv4 tests');
     }
 
-    record_info("EXPORTS", script_output("cat /etc/exports"));
+    if ($use_external_shares eq '1') {
+        record_info("Mounted external shares", script_output("mount | grep ' type nfs' || true"));
+    } else {
+        record_info("EXPORTS", script_output("cat /etc/exports"));
 
-    systemctl("enable rpcbind --now");
-    systemctl("is-active rpcbind");
-    systemctl("enable nfs-server --now");
-    systemctl("restart nfs-server");
-    systemctl("is-active nfs-server");
+        systemctl("enable rpcbind --now");
+        systemctl("is-active rpcbind");
+        systemctl("enable nfs-server --now");
+        systemctl("restart nfs-server");
+        systemctl("is-active nfs-server");
 
-    record_info("RPC", script_output("rpcinfo"));
-    record_info("NFS config", script_output("cat /etc/sysconfig/nfs"));
+        record_info("RPC", script_output("rpcinfo"));
+        record_info("NFS config", script_output("cat /etc/sysconfig/nfs"));
+    }
 
     #my $nfsstat = script_output("nfsstat -s");
     record_info("NFS stat for server", script_output("nfsstat -s"));
@@ -127,9 +181,9 @@ sub run {
     if ($kernel_nfs3 == 1) {
         #checking files in /nfs/shared_nfs3
         record_info("TESTS: NFS3");
-        record_info("NFS3 list all files", script_output("ls $nfs_mount_nfs3"));
+        record_info("NFS3 list all files", script_output("ls $nfs_check_nfs3"));
 
-        assert_script_run("cd $nfs_mount_nfs3");
+        assert_script_run("cd $nfs_check_nfs3");
 
         assert_script_run("md5sum -c md5sum.txt");
         record_info("NFS3 checksum", script_output("md5sum -c md5sum.txt"));
@@ -143,7 +197,7 @@ sub run {
         #checking files in /nfs/shared_nfs3_async
         record_info("TESTS: NFS3 async");
 
-        assert_script_run("cd $nfs_mount_nfs3_async");
+        assert_script_run("cd $nfs_check_nfs3_async");
         assert_script_run("md5sum -c md5sum.txt");
         record_info("NFS3 async checksum", script_output("md5sum -c md5sum.txt"));
 
@@ -157,7 +211,7 @@ sub run {
         #checking files in /nfs/shared_nfs4
         record_info("TESTS: NFS4");
 
-        assert_script_run("cd $nfs_mount_nfs4");
+        assert_script_run("cd $nfs_check_nfs4");
         assert_script_run("md5sum -c md5sum.txt");
         record_info("NFS4 checksum", script_output("md5sum -c md5sum.txt"));
 
@@ -169,7 +223,7 @@ sub run {
         #checking files in /nfs/shared_nfs4_async
         record_info("TESTS: NFS4 async");
 
-        assert_script_run("cd $nfs_mount_nfs4_async");
+        assert_script_run("cd $nfs_check_nfs4_async");
         assert_script_run("md5sum -c md5sum.txt");
         record_info("NFS4 async checksum", script_output("md5sum -c md5sum.txt"));
 

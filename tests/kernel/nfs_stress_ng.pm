@@ -149,6 +149,12 @@ sub client {
 sub run {
     my ($self) = @_;
     select_serial_terminal;
+    if (get_var('NFS_SHOWMOUNT_ONLY', '0') eq '1') {
+        record_info('skip', 'Skipping stress-ng in showmount-only mode');
+        barrier_wait('NFS_STRESS_NG_START');
+        barrier_wait('NFS_STRESS_NG_END');
+        return;
+    }
 
     my $role = get_required_var('ROLE');
 

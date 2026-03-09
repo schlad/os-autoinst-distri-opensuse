@@ -21,17 +21,44 @@ sub copy_file {
     assert_script_run("dd oflag=$flag if=testfile of=$nfs_mount/$file bs=1024 count=10240");
 }
 
+sub probe_showmount_exports {
+    my ($server) = @_;
+
+    my $exports = script_output("showmount -e $server", timeout => 180);
+    record_info("showmount $server", $exports);
+
+    my @expected_exports = grep { $_ ne '' } split(/\s*,\s*/, get_var('NFS_EXPECTED_EXPORTS', get_var('NFS_SHARE', '')));
+    assert_script_run("showmount -e $server | grep -F -- '$_'") for @expected_exports;
+}
+
 sub run {
     select_serial_terminal();
     record_info("hostname", script_output("hostname"));
     my $server_node = get_var('SERVER_NODE', 'server-node00');
+    my $use_external_shares = get_var('NFS_EXTERNAL_SHARES', '0');
+    my $showmount_only = get_var('NFS_SHOWMOUNT_ONLY', '0');
+    my $nfs_server = $use_external_shares eq '1' ? get_required_var('NFS_SERVER') : $server_node;
+    $nfs_server = get_required_var('NFS_SERVER') if $showmount_only eq '1';
 
     zypper_call("in nfs-client");
+
+    if ($showmount_only eq '1') {
+        barrier_wait("NFS_SERVER_ENABLED");
+        probe_showmount_exports($nfs_server);
+        barrier_wait("NFS_CLIENT_ENABLED");
+        barrier_wait("NFS_SERVER_CHECK");
+        return;
+    }
 
     my $local_nfs3 = get_var('NFS_LOCAL_NFS3', '/home/localNFS3');
     my $local_nfs3_async = get_var('NFS_LOCAL_NFS3_ASYNC', '/home/localNFS3async');
     my $local_nfs4 = get_var('NFS_LOCAL_NFS4', '/home/localNFS4');
     my $local_nfs4_async = get_var('NFS_LOCAL_NFS4_ASYNC', '/home/localNFS4async');
+    my $nfs_share = get_var('NFS_SHARE');
+    my $share_nfs3 = get_var('NFS_SHARE_NFS3', $nfs_share // get_var('NFS_MOUNT_NFS3', '/nfs/shared_nfs3'));
+    my $share_nfs3_async = get_var('NFS_SHARE_NFS3_ASYNC', $nfs_share // get_var('NFS_MOUNT_NFS3_ASYNC', '/nfs/shared_nfs3_async'));
+    my $share_nfs4 = get_var('NFS_SHARE_NFS4', $nfs_share // get_var('NFS_MOUNT_NFS4', '/nfs/shared_nfs4'));
+    my $share_nfs4_async = get_var('NFS_SHARE_NFS4_ASYNC', $nfs_share // get_var('NFS_MOUNT_NFS4_ASYNC', '/nfs/shared_nfs4_async'));
     my $multipath = get_var('NFS_MULTIPATH', '0');
 
     # check kernel config options and set the variables
@@ -50,22 +77,22 @@ sub run {
     $kernel_nfsd_v4 = 1 unless script_run('zgrep "CONFIG_NFSD_V4=[my]" /proc/config.gz');
 
     barrier_wait("NFS_SERVER_ENABLED");
-    record_info("showmount", script_output("showmount -e $server_node"));
+    record_info("showmount", script_output("showmount -e $nfs_server", proceed_on_failure => 1));
 
     if ($kernel_nfs3 == 1) {
         record_info('INFO', 'Kernel has support for NFSv3');
-        assert_script_run("mkdir $local_nfs3 $local_nfs3_async");
-        assert_script_run("mount -t nfs -o nfsvers=3,sync $server_node:/nfs/shared_nfs3 $local_nfs3");
-        assert_script_run("mount -t nfs -o nfsvers=3 $server_node:/nfs/shared_nfs3_async $local_nfs3_async");
+        assert_script_run("mkdir -p $local_nfs3 $local_nfs3_async");
+        assert_script_run("mount -t nfs -o nfsvers=3,sync $nfs_server:$share_nfs3 $local_nfs3");
+        assert_script_run("mount -t nfs -o nfsvers=3 $nfs_server:$share_nfs3_async $local_nfs3_async");
     } else {
         record_info('INFO', 'Kernel has no support for NFSv3, skipping NFSv3 tests');
     }
 
     if ($kernel_nfs4 == 1) {
         record_info('INFO', 'Kernel has support for NFSv4');
-        assert_script_run("mkdir $local_nfs4 $local_nfs4_async");
-        assert_script_run("mount -t nfs -o nfsvers=4,sync $server_node:/nfs/shared_nfs4 $local_nfs4");
-        assert_script_run("mount -t nfs -o nfsvers=4 $server_node:/nfs/shared_nfs4_async $local_nfs4_async");
+        assert_script_run("mkdir -p $local_nfs4 $local_nfs4_async");
+        assert_script_run("mount -t nfs -o nfsvers=4,sync $nfs_server:$share_nfs4 $local_nfs4");
+        assert_script_run("mount -t nfs -o nfsvers=4 $nfs_server:$share_nfs4_async $local_nfs4_async");
     } else {
         record_info('INFO', 'Kernel has no support for NFSv4, skipping NFSv4tests');
     }
