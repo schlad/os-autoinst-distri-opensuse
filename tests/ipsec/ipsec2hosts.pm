@@ -164,27 +164,15 @@ sub run_right {
 
 sub run {
     my ($self) = @_;
-    my $role = get_var('IPSEC_SETUP') // get_var('ROLE')
-      // die 'Neither IPSEC_SETUP nor ROLE is set';
+    my $role = get_required_var('IPSEC_SETUP');
     my $setup = get_ipsec_2hosts_setup(role => $role);
-
-    select_serial_terminal;
 
     record_info('IPSEC_SETUP', $role);
     record_info('IP ADDRESS', script_output('ip a'));
     record_info('IP ROUTE', script_output('ip -6 route', proceed_on_failure => 1));
 
-    if ($role eq 'left') {
-        $self->run_left($setup);
-        return;
-    }
-
-    if ($role eq 'right') {
-        $self->run_right($setup);
-        return;
-    }
-
-    die "Unknown IPsec 2-host role '$role'";
+    if ($role eq 'left') { $self->run_left($setup); }
+    if ($role eq 'right') { $self->run_right($setup); }
 }
 
 sub pre_run_hook {
