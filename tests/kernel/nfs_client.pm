@@ -17,6 +17,7 @@ use lockapi;
 use utils;
 use version_utils 'is_transactional';
 use transactional 'trup_install';
+use Kernel::nfs qw(nfs_client_mount nfs_server_export);
 
 sub copy_file {
     my ($flag, $nfs_mount, $file) = @_;
@@ -38,10 +39,14 @@ sub run {
 
     install_nfs_client();
 
-    my $local_nfs3 = get_var('NFS_LOCAL_NFS3', '/home/localNFS3');
-    my $local_nfs3_async = get_var('NFS_LOCAL_NFS3_ASYNC', '/home/localNFS3async');
-    my $local_nfs4 = get_var('NFS_LOCAL_NFS4', '/home/localNFS4');
-    my $local_nfs4_async = get_var('NFS_LOCAL_NFS4_ASYNC', '/home/localNFS4async');
+    my $nfs_mount_nfs3 = get_var('NFS_MOUNT_NFS3', nfs_server_export('shared_nfs3'));
+    my $nfs_mount_nfs3_async = get_var('NFS_MOUNT_NFS3_ASYNC', nfs_server_export('shared_nfs3_async'));
+    my $nfs_mount_nfs4 = get_var('NFS_MOUNT_NFS4', nfs_server_export('shared_nfs4'));
+    my $nfs_mount_nfs4_async = get_var('NFS_MOUNT_NFS4_ASYNC', nfs_server_export('shared_nfs4_async'));
+    my $local_nfs3 = get_var('NFS_LOCAL_NFS3', nfs_client_mount('localNFS3'));
+    my $local_nfs3_async = get_var('NFS_LOCAL_NFS3_ASYNC', nfs_client_mount('localNFS3async'));
+    my $local_nfs4 = get_var('NFS_LOCAL_NFS4', nfs_client_mount('localNFS4'));
+    my $local_nfs4_async = get_var('NFS_LOCAL_NFS4_ASYNC', nfs_client_mount('localNFS4async'));
     my $multipath = get_var('NFS_MULTIPATH', '0');
 
     # check kernel config options and set the variables
@@ -64,18 +69,18 @@ sub run {
 
     if ($kernel_nfs3 == 1) {
         record_info('INFO', 'Kernel has support for NFSv3');
-        assert_script_run("mkdir $local_nfs3 $local_nfs3_async");
-        assert_script_run("mount -t nfs -o nfsvers=3,sync $server_node:/nfs/shared_nfs3 $local_nfs3");
-        assert_script_run("mount -t nfs -o nfsvers=3 $server_node:/nfs/shared_nfs3_async $local_nfs3_async");
+        assert_script_run("mkdir -p $local_nfs3 $local_nfs3_async");
+        assert_script_run("mount -t nfs -o nfsvers=3,sync $server_node:$nfs_mount_nfs3 $local_nfs3");
+        assert_script_run("mount -t nfs -o nfsvers=3 $server_node:$nfs_mount_nfs3_async $local_nfs3_async");
     } else {
         record_info('INFO', 'Kernel has no support for NFSv3, skipping NFSv3 tests');
     }
 
     if ($kernel_nfs4 == 1) {
         record_info('INFO', 'Kernel has support for NFSv4');
-        assert_script_run("mkdir $local_nfs4 $local_nfs4_async");
-        assert_script_run("mount -t nfs -o nfsvers=4,sync $server_node:/nfs/shared_nfs4 $local_nfs4");
-        assert_script_run("mount -t nfs -o nfsvers=4 $server_node:/nfs/shared_nfs4_async $local_nfs4_async");
+        assert_script_run("mkdir -p $local_nfs4 $local_nfs4_async");
+        assert_script_run("mount -t nfs -o nfsvers=4,sync $server_node:$nfs_mount_nfs4 $local_nfs4");
+        assert_script_run("mount -t nfs -o nfsvers=4 $server_node:$nfs_mount_nfs4_async $local_nfs4_async");
     } else {
         record_info('INFO', 'Kernel has no support for NFSv4, skipping NFSv4tests');
     }

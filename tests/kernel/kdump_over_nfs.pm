@@ -18,11 +18,13 @@ use utils;
 use kdump_utils;
 use lockapi;
 use power_action_utils 'power_action';
+use Kernel::nfs 'nfs_server_export';
 
 sub run {
     my ($self) = @_;
     my $role = get_required_var('ROLE');
     my $nfs_server = get_var('NFS_SERVER', 'server-node00');
+    my $nfs_share = get_var('NFS_MOUNT_NFS3', nfs_server_export('shared_nfs3'));
 
     get_required_var('KDUMP_SAVEDIR');
 
@@ -30,7 +32,7 @@ sub run {
 
     #Specific wicked workaround for SLE15 - allow connection from all hosts
     if ($role eq 'nfs_server') {
-        assert_script_run("echo '/nfs/shared_nfs3 10.0.2.0/24(rw,sync,no_subtree_check,no_root_squash)' > /etc/exports");
+        assert_script_run("echo '$nfs_share 10.0.2.0/24(rw,sync,no_subtree_check,no_root_squash)' > /etc/exports");
         assert_script_run("exportfs -ra");
     }
 
@@ -38,7 +40,7 @@ sub run {
 
     if ($role eq 'nfs_client') {
         assert_script_run("mkdir -p /var/crash");
-        assert_script_run("echo \"$nfs_server:/nfs/shared_nfs3 /var/crash nfs nfsvers=3,sync,nofail,x-systemd.automount 0 0\" >> /etc/fstab");
+        assert_script_run("echo \"$nfs_server:$nfs_share /var/crash nfs nfsvers=3,sync,nofail,x-systemd.automount 0 0\" >> /etc/fstab");
         assert_script_run("mount -a");
 
         configure_service(test_type => 'function', yast_interface => 'cli');
