@@ -15,10 +15,20 @@ use testapi;
 use serial_terminal "select_serial_terminal";
 use lockapi;
 use utils;
+use version_utils 'is_transactional';
+use transactional 'trup_install';
 
 sub copy_file {
     my ($flag, $nfs_mount, $file) = @_;
     assert_script_run("dd oflag=$flag if=testfile of=$nfs_mount/$file bs=1024 count=10240");
+}
+
+sub install_nfs_client {
+    if (is_transactional) {
+        trup_install('nfs-client');
+    } else {
+        zypper_call("in nfs-client");
+    }
 }
 
 sub run {
@@ -26,7 +36,7 @@ sub run {
     record_info("hostname", script_output("hostname"));
     my $server_node = get_var('SERVER_NODE', 'server-node00');
 
-    zypper_call("in nfs-client");
+    install_nfs_client();
 
     my $local_nfs3 = get_var('NFS_LOCAL_NFS3', '/home/localNFS3');
     my $local_nfs3_async = get_var('NFS_LOCAL_NFS3_ASYNC', '/home/localNFS3async');

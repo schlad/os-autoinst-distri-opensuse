@@ -28,6 +28,8 @@ use serial_terminal "select_serial_terminal";
 use lockapi;
 use utils;
 use Utils::Logging "export_logs_basic";
+use version_utils 'is_transactional';
+use transactional 'trup_install';
 
 # create a mountpoint and the corresponding export with
 # specified permissions
@@ -51,6 +53,14 @@ sub compare_checksums {
     record_info("Checksums md5 $md5 newMd5: $new_md5");
 
     die "checksums differ $md5 : $new_md5" unless ($md5 eq $new_md5);
+}
+
+sub install_nfs_server {
+    if (is_transactional) {
+        trup_install('nfs-kernel-server');
+    } else {
+        zypper_call("in nfs-kernel-server");
+    }
 }
 
 sub run {
@@ -88,7 +98,7 @@ sub run {
     my $file_flag_sync = 'testfile_oflag_sync';
 
     # provision NFS server(s) of various types
-    zypper_call("in nfs-kernel-server");
+    install_nfs_server();
 
     # configure our exports
     if ($kernel_nfs3 == 1) {
