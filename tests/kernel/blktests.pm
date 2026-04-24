@@ -51,6 +51,7 @@ sub run {
 
     my @tests = split(',', $tests);
     assert_script_run('cd /usr/lib/blktests');
+    sleep 999999;
 
     $exclude = join(' ', map { "--exclude=$_" } split(/,/, $exclude // ''));
     $trtypes = "NVMET_TRTYPES=\"$trtypes\" " if $trtypes;
