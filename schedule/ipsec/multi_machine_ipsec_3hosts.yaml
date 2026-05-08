@@ -9,6 +9,14 @@ conditional_schedule:
   bootmenu:
     ARCH:
       aarch64:
+  change_kernel:
+    CHANGE_KERNEL:
+      1:
+        - kernel/change_kernel
+  boot_after_change_kernel:
+    CHANGE_KERNEL:
+      1:
+        - boot/boot_to_desktop
   copyfail_authencesn:
     COPYFAIL_REPRO:
       1:
@@ -20,6 +28,8 @@ conditional_schedule:
 schedule:
   - '{{bootmenu}}'
   - boot/boot_to_desktop
+  - '{{change_kernel}}'
+  - '{{boot_after_change_kernel}}'
   - ipsec/ipsec3hosts
   - '{{copyfail_authencesn}}'
   - '{{dirtyfrag_xfrm_esp}}'
