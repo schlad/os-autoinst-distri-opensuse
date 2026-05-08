@@ -9,8 +9,18 @@ conditional_schedule:
   bootmenu:
     ARCH:
       aarch64:
+  copyfail_authencesn:
+    COPYFAIL_REPRO:
+      1:
+        - ipsec/copyfail_authencesn
+  dirtyfrag_xfrm_esp:
+    DIRTYFRAG_REPRO:
+      1:
+        - ipsec/dirtyfrag_xfrm_esp
 schedule:
   - '{{bootmenu}}'
   - boot/boot_to_desktop
   - ipsec/ipsec3hosts
+  - '{{copyfail_authencesn}}'
+  - '{{dirtyfrag_xfrm_esp}}'
   - ipsec/l2tp3hosts
