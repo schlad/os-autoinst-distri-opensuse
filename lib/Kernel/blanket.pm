@@ -193,15 +193,14 @@ sub upload_blanket_results {
     my $glob = $args{coverage_glob} // _coverage_glob();
     my $report = $args{report} // '/tmp/blanket-report.txt';
     my $archive = $args{archive} // '/tmp/blanket-results.tar.gz';
-    my $details = $args{details} // get_var('BLANKET_REPORT_DETAILS', '');
+    my $details = $args{details} // get_var('BLANKET_REPORT_DETAILS', '--symbols');
 
     if (script_run("ls $glob") != 0) {
         record_info('blanket', "No blanket coverage files found: $glob", result => 'softfail');
         return;
     }
 
-    my $opts = $details ? "$details " : '';
-    assert_script_run(join(' ', _quote(_blanket_bin()), _control_opt(%args), 'report', $opts . $glob, '>', _quote($report)), 300);
+    assert_script_run(join(' ', _quote(_blanket_bin()), _control_opt(%args), $details, 'report', $glob, '>', _quote($report)), 300);
     upload_logs($report, failok => 1);
     assert_script_run('tar -czf ' . _quote($archive) . ' ' . _quote($report) . " $glob", 300);
     upload_logs($archive, failok => 1);

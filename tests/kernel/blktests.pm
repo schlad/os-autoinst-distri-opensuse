@@ -108,6 +108,7 @@ sub run {
     install_package('blktests fio', trup_apply => 1);
 
     if ($use_blanket) {
+        install_package('fio-debuginfo', trup_apply => 1);
         install_blanket();
         blanket_init();
         blanket_add('/usr/bin/fio');
