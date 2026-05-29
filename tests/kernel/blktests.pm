@@ -27,31 +27,13 @@ sub prepare_blktests_config {
     }
 }
 
-sub blktests_entry_match {
-    my ($entry, $environment) = @_;
-
-    return unless LTP::WhiteList::_whitelist_entry_match($entry, $environment);
-
-    if (defined $entry->{trtypes}) {
-        return unless defined $environment->{trtypes};
-        return unless $environment->{trtypes} =~ m/$entry->{trtypes}/;
-    }
-
-    return 1;
-}
-
 sub list_skipped_blktests {
     my ($whitelist, $environment) = @_;
     my %skipped_tests;
 
-    my $suite = $whitelist->{whitelist}->{blktests};
-    return %skipped_tests unless ($suite);
-    return %skipped_tests if (ref($suite) eq 'ARRAY');
-
-    for my $test (keys(%$suite)) {
-        next if $test eq '*';
-        my @entries = grep { $_->{skip} && blktests_entry_match($_, $environment) } @{$suite->{$test}};
-        $skipped_tests{$test} = $entries[0]->{message} // '' if @entries;
+    for my $test ($whitelist->list_skipped_tests($environment, 'blktests')) {
+        my $entry = $whitelist->find_whitelist_entry($environment, 'blktests', $test);
+        $skipped_tests{$test} = $entry->{message} // '';
     }
 
     return %skipped_tests;
@@ -67,7 +49,7 @@ sub prepare_whitelist_environment {
         arch => get_var('ARCH'),
         backend => get_var('BACKEND'),
         machine => get_var('MACHINE'),
-        trtypes => $trtypes // '',
+        test_variant => $trtypes // '',
         kernel => script_output('uname -r')
     };
 }
@@ -220,14 +202,13 @@ Example:
         skip: 1
         message: miniublk uses legacy ublk command opcodes
       nvme/041:
-      - trtypes: ^fc$
+      - test_variant: ^fc$
         skip: 1
         message: skipped only for NVMe Fibre Channel transport
 
 The common C<LTP::WhiteList> fields such as C<product>, C<revision>, C<flavor>,
-C<arch>, C<backend>, C<machine>, and C<kernel> are supported.
-The C<trtypes> field is handled locally by this module and matches
-C<BLKTESTS_TRTYPES>.
+C<arch>, C<backend>, C<machine>, C<kernel>, and C<test_variant> are supported.
+For blktests, C<test_variant> matches C<BLKTESTS_TRTYPES>.
 
 =head2 BLKTESTS_QUICK
 
@@ -237,4 +218,4 @@ Optional. Value passed to C<./check --quick>. Defaults to C<60>.
 
 Optional. NVMe transport type passed to blktests through C<NVMET_TRTYPES>.
 This value is also available to C<BLKTESTS_KNOWN_ISSUES> entries through the
-blktests-local C<trtypes> matcher.
+C<test_variant> matcher.
