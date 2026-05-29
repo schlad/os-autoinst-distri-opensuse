@@ -201,7 +201,7 @@ sub upload_blanket_results {
     }
 
     my $opts = $details ? "$details " : '';
-    assert_script_run(join(' ', _quote(_blanket_bin()), 'report', $opts . $glob, '>', _quote($report)), 300);
+    assert_script_run(join(' ', _quote(_blanket_bin()), _control_opt(%args), 'report', $opts . $glob, '>', _quote($report)), 300);
     upload_logs($report, failok => 1);
     assert_script_run('tar -czf ' . _quote($archive) . ' ' . _quote($report) . " $glob", 300);
     upload_logs($archive, failok => 1);
