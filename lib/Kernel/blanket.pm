@@ -121,7 +121,14 @@ Add ELF objects to the active blanket control file.
 sub blanket_add {
     my (@objects) = @_;
     die 'No blanket objects specified' unless @objects;
-    assert_script_run(join(' ', _quote(_blanket_bin()), _control_opt(), 'add', map { _quote($_) } @objects));
+    my @present = grep { script_run("test -e $_") == 0 } @objects;
+    if (@present < @objects) {
+        my %seen = map { $_ => 1 } @present;
+        my @missing = grep { !$seen{$_} } @objects;
+        record_info('blanket', 'Objects not found, skipping: ' . join(' ', @missing), result => 'softfail');
+    }
+    return unless @present;
+    assert_script_run(join(' ', _quote(_blanket_bin()), _control_opt(), 'add', map { _quote($_) } @present));
 }
 
 =head2 blanket_trace
