@@ -13,6 +13,7 @@ use serial_terminal 'select_serial_terminal';
 use utils;
 use repo_tools 'add_qa_head_repo';
 use LTP::WhiteList;
+use Kernel::blanket qw(install_blanket blanket_init blanket_add blanket_show blanket_env upload_blanket_results);
 use package_utils 'install_package';
 use Utils::Logging qw(export_logs_basic save_and_upload_log);
 
@@ -96,6 +97,7 @@ sub run {
     my $exclude = get_var('BLKTESTS_EXCLUDE');
     my $trtypes = get_var('BLKTESTS_TRTYPES');
     my $issues = get_var('BLKTESTS_KNOWN_ISSUES');
+    my $use_blanket = get_var('BLKTESTS_BLANKET');
 
     record_info('KERNEL', script_output('rpm -qi kernel-default'));
     save_and_upload_log('rpm -qi kernel-default', 'kernel_bug_report.txt');
@@ -104,6 +106,13 @@ sub run {
     #with some packages provided in both, tested product and qa repo; example: fio
     add_qa_head_repo(priority => 100);
     install_package('blktests fio', trup_apply => 1);
+
+    if ($use_blanket) {
+        install_blanket();
+        blanket_init();
+        blanket_add('/usr/bin/fio');
+        blanket_show();
+    }
 
     #Prepare configuration, log/results directories
     assert_script_run('mkdir -p /etc/blktests');
@@ -127,12 +136,14 @@ sub run {
     $exclude = join(' ', map { "--exclude=$_" } grep { $_ ne '' } @exclude);
     $trtypes = "NVMET_TRTYPES=\"$trtypes\" " if $trtypes;
 
+    my $blanket_prefix = $use_blanket ? blanket_env() . ' ' : '';
     foreach my $i (@tests) {
         my $config = $devices eq 'none' ? '' : '-c /etc/blktests/config';
-        script_run("${trtypes} ./check $config -o ${log_dir}/results --quick=$quick $exclude $i", 1200);
+        script_run("${trtypes}${blanket_prefix}./check $config -o ${log_dir}/results --quick=$quick $exclude $i", 1200);
     }
 
     process_blktests_results($log_dir);
+    upload_blanket_results() if $use_blanket;
 }
 
 sub test_flags {
@@ -219,3 +230,14 @@ Optional. Value passed to C<./check --quick>. Defaults to C<60>.
 Optional. NVMe transport type passed to blktests through C<NVMET_TRTYPES>.
 This value is also available to C<BLKTESTS_KNOWN_ISSUES> entries through the
 C<test_variant> matcher.
+
+=head2 BLKTESTS_BLANKET
+
+Optional. Set to any true value to enable coverage collection with the blanket
+tool (L<https://github.com/schlad/blanket>). When set, blanket is built from
+source on the SUT, C<fio> is registered as the ELF object to measure, and each
+C<./check> invocation is run with C<LD_PRELOAD=libblanket.so> so that all child
+processes are covered. A report and raw coverage archive are uploaded at the end
+of the test. Override blanket defaults with C<BLANKET_GIT_REPO>, C<BLANKET_GIT_REF>,
+C<BLANKET_DIR>, C<BLANKET_BIN>, C<BLANKET_LIB>, C<BLANKET_CONTROL>, and
+C<BLANKET_MODE>.
