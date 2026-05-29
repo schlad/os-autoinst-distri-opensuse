@@ -98,7 +98,6 @@ sub run {
     my $trtypes = get_var('BLKTESTS_TRTYPES');
     my $issues = get_var('BLKTESTS_KNOWN_ISSUES');
     my $use_blanket = get_var('BLKTESTS_BLANKET');
-    my $blanket_objects = get_var('BLKTESTS_BLANKET_OBJECTS');
 
     record_info('KERNEL', script_output('rpm -qi kernel-default'));
     save_and_upload_log('rpm -qi kernel-default', 'kernel_bug_report.txt');
@@ -111,7 +110,7 @@ sub run {
     if ($use_blanket) {
         install_blanket();
         blanket_init();
-        blanket_add(split(/,/, $blanket_objects)) if $blanket_objects;
+        blanket_add(split(/,/, get_required_var('BLKTESTS_BLANKET_OBJECTS')));
         blanket_show();
     }
 
