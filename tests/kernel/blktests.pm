@@ -98,6 +98,7 @@ sub run {
     my $trtypes = get_var('BLKTESTS_TRTYPES');
     my $issues = get_var('BLKTESTS_KNOWN_ISSUES');
     my $use_blanket = get_var('BLKTESTS_BLANKET');
+    my $blanket_objects = get_var('BLKTESTS_BLANKET_OBJECTS');
 
     record_info('KERNEL', script_output('rpm -qi kernel-default'));
     save_and_upload_log('rpm -qi kernel-default', 'kernel_bug_report.txt');
@@ -109,7 +110,8 @@ sub run {
 
     if ($use_blanket) {
         install_blanket();
-        blanket_init(measure_all => 1);
+        blanket_init();
+        blanket_add(split(/,/, $blanket_objects)) if $blanket_objects;
         blanket_show();
     }
 
@@ -234,9 +236,16 @@ C<test_variant> matcher.
 
 Optional. Set to any true value to enable coverage collection with the blanket
 tool (L<https://github.com/schlad/blanket>). When set, blanket is built from
-source on the SUT, C<fio> is registered as the ELF object to measure, and each
-C<./check> invocation is run with C<LD_PRELOAD=libblanket.so> so that all child
-processes are covered. A report and raw coverage archive are uploaded at the end
-of the test. Override blanket defaults with C<BLANKET_GIT_REPO>, C<BLANKET_GIT_REF>,
-C<BLANKET_DIR>, C<BLANKET_BIN>, C<BLANKET_LIB>, C<BLANKET_CONTROL>, and
-C<BLANKET_MODE>.
+source on the SUT and each C<./check> invocation is run with
+C<LD_PRELOAD=libblanket.so> so that all child processes are covered. A report
+and raw coverage archive are uploaded at the end of the test. Override blanket
+defaults with C<BLANKET_GIT_REPO>, C<BLANKET_GIT_REF>, C<BLANKET_DIR>,
+C<BLANKET_BIN>, C<BLANKET_LIB>, C<BLANKET_CONTROL>, and C<BLANKET_MODE>.
+
+=head2 BLKTESTS_BLANKET_OBJECTS
+
+Optional. Comma-separated list of ELF binary paths to register with blanket for
+coverage measurement. Required when C<BLKTESTS_BLANKET> is set — without it no
+coverage files are produced. Choose binaries relevant to the test group being
+run, for example C</usr/bin/nvme> for C<BLKTESTS=nvme> or C</usr/bin/sg_raw>
+for SCSI tests.
