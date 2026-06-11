@@ -39,14 +39,29 @@ sub run {
     my $exclude = get_var('BLKTESTS_EXCLUDE');
     my $trtypes = get_var('BLKTESTS_TRTYPES');
     my $issues = get_var('BLKTESTS_KNOWN_ISSUES');
+    my $install = get_var('BLKTESTS_INSTALL', 'from_repo');
 
     record_info('KERNEL', script_output('rpm -qi kernel-default'));
     save_and_upload_log('rpm -qi kernel-default', 'kernel_bug_report.txt');
 
-    #QA repo is added with lower prio in order to avoid possible problems
-    #with some packages provided in both, tested product and qa repo; example: fio
-    add_qa_head_repo(priority => 100);
-    install_package('blktests fio', trup_apply => 1);
+    my $test_dir;
+    if ($install =~ /git/i) {
+        my $repository = get_var('BLKTESTS_REPO', 'https://github.com/linux-blktests/blktests.git');
+        my $version = get_var('BLKTESTS_VERSION', '');
+        add_qa_head_repo(priority => 100);
+        install_package('git-core fio', trup_apply => 1);
+        my $clone_cmd = "git clone --depth=1 $repository";
+        $clone_cmd .= " --branch $version" if $version;
+        assert_script_run($clone_cmd);
+        $test_dir = 'blktests';
+        record_info('test version', script_output('git -C blktests log -1 --oneline'));
+    } else {
+        #QA repo is added with lower prio in order to avoid possible problems
+        #with some packages provided in both, tested product and qa repo; example: fio
+        add_qa_head_repo(priority => 100);
+        install_package('blktests fio', trup_apply => 1);
+        $test_dir = '/usr/lib/blktests';
+    }
 
     #Prepare configuration, log/results directories
     assert_script_run("mkdir -p /etc/blktests");
@@ -57,7 +72,7 @@ sub run {
     prepare_blktests_config($devices);
 
     my @tests = split(',', $tests);
-    assert_script_run('cd /usr/lib/blktests');
+    assert_script_run("cd $test_dir");
 
     # BLKTESTS_EXCLUDE provides the initial list; known-issue entries are appended below
     my @exclude = split(/,/, $exclude // '');
@@ -113,7 +128,8 @@ sub post_fail_hook {
 
 =head1 Description
 
-Run the upstream blktests suite from the C<blktests> package.
+Run the upstream blktests suite either from the C<blktests> RPM package (default)
+or from a git checkout.
 
 The test groups to execute are selected with C<BLKTESTS>. Individual tests can
 be skipped either directly with C<BLKTESTS_EXCLUDE> (mostly for debugging purposes)
@@ -123,6 +139,21 @@ matches the upstream C<blktests> variable name, for example C<BLKTESTS_TRTYPES>
 for C<TRTYPES>.
 
 =head1 Configuration
+
+=head2 BLKTESTS_INSTALL
+
+Installation method. Defaults to C<from_repo> which installs the C<blktests> RPM
+from QA:Head. Set to C<from_git> to clone from source instead.
+
+=head2 BLKTESTS_REPO
+
+The blktests git repository URL. Used only with C<BLKTESTS_INSTALL=from_git>.
+Defaults to C<https://github.com/linux-blktests/blktests.git>.
+
+=head2 BLKTESTS_VERSION
+
+Branch or tag to check out. Used only with C<BLKTESTS_INSTALL=from_git>.
+Defaults to the default branch of the repository.
 
 =head2 BLKTESTS
 
