@@ -49,7 +49,7 @@ sub run {
         my $repository = get_var('BLKTESTS_REPO', 'https://github.com/linux-blktests/blktests.git');
         my $version = get_var('BLKTESTS_VERSION', '');
         add_qa_head_repo(priority => 100);
-        install_package('git-core fio', trup_apply => 1);
+        install_package('git-core fio nvme-cli', trup_apply => 1);
         my $clone_cmd = "git clone --depth=1 $repository";
         $clone_cmd .= " --branch $version" if $version;
         assert_script_run($clone_cmd);
