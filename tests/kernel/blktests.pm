@@ -54,6 +54,7 @@ sub run {
     my $log_dir = '/var/log/blktests';
     assert_script_run("mkdir -p ${log_dir}/results");
 
+    sleep 999999;
     prepare_blktests_config($devices);
 
     my @tests = split(',', $tests);
