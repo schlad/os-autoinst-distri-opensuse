@@ -33,22 +33,27 @@ sub prepare_blktests_config {
 
     if ($devices eq 'none') {
         record_info('INFO', 'No specific tests device selected');
-    } else {
-        my @config = ("TEST_DEVS=($devices)");
-        push @config, qq(TEST_CASE_DEV_ARRAY[md/003]="$devices")
-          if test_selection_includes($tests, 'md/003');
-        script_run("cat > /etc/blktests/config <<'EOF'\n" . join("\n", @config) . "\nEOF");
-        record_info('INFO', "$devices");
+        return;
     }
+
+    my @config = ("TEST_DEVS=($devices)");
+    push @config, qq(TEST_CASE_DEV_ARRAY[md/003]="$devices")
+      if test_selection_includes($tests, 'md/003');
+
+    script_run("echo '$config[0]' > /etc/blktests/config");
+    for my $line (@config[1 .. $#config]) {
+        script_run("echo '$line' >> /etc/blktests/config");
+    }
+    record_info('blktests cfg', join("\n", @config));
 }
 
 sub record_storage_info {
-    my $lsblk = 'lsblk -d -o NAME,PATH,MODEL,SERIAL,SIZE,TYPE,TRAN 2>/dev/null'
-      . ' || lsblk -d -o NAME,PATH,MODEL,SERIAL,SIZE,TYPE 2>/dev/null'
+    my $lsblk = 'lsblk -p -o NAME,TYPE,SIZE,MODEL,SERIAL,TRAN,MOUNTPOINT 2>/dev/null'
       . ' || lsblk || true';
-    record_info('lsblk', script_output($lsblk));
-    record_info('nvme devs', script_output('ls -l /dev/nvme* /dev/disk/by-id/*nvme* 2>/dev/null || true'));
-    record_info('config', script_output('cat /etc/blktests/config 2>/dev/null || true'));
+    record_info('devices', script_output($lsblk));
+    record_info('/dev disks', script_output('ls -l /dev/nvme* /dev/vd* /dev/sd* 2>/dev/null || true'));
+    record_info('by-id', script_output('ls -l /dev/disk/by-id 2>/dev/null || true'));
+    record_info('blktests cfg', script_output('cat /etc/blktests/config 2>/dev/null || true'));
 }
 
 sub run {
