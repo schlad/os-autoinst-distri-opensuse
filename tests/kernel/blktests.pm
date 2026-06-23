@@ -17,15 +17,38 @@ use LTP::utils 'prepare_whitelist_environment';
 use package_utils 'install_package';
 use Utils::Logging qw(export_logs_basic save_and_upload_log);
 
+sub test_selection_includes {
+    my ($tests, $wanted) = @_;
+    my ($group) = split('/', $wanted);
+
+    for my $test (split(',', $tests)) {
+        $test =~ s/^\s+|\s+$//g;
+        return 1 if $test eq $wanted || $test eq $group;
+    }
+    return 0;
+}
+
 sub prepare_blktests_config {
-    my ($devices) = @_;
+    my ($devices, $tests) = @_;
 
     if ($devices eq 'none') {
         record_info('INFO', 'No specific tests device selected');
     } else {
-        script_run("echo TEST_DEVS=\\($devices\\) > /etc/blktests/config");
+        my @config = ("TEST_DEVS=($devices)");
+        push @config, qq(TEST_CASE_DEV_ARRAY[md/003]="$devices")
+          if test_selection_includes($tests, 'md/003');
+        script_run("cat > /etc/blktests/config <<'EOF'\n" . join("\n", @config) . "\nEOF");
         record_info('INFO', "$devices");
     }
+}
+
+sub record_storage_info {
+    my $lsblk = 'lsblk -d -o NAME,PATH,MODEL,SERIAL,SIZE,TYPE,TRAN 2>/dev/null'
+      . ' || lsblk -d -o NAME,PATH,MODEL,SERIAL,SIZE,TYPE 2>/dev/null'
+      . ' || lsblk || true';
+    record_info('lsblk', script_output($lsblk));
+    record_info('nvme devs', script_output('ls -l /dev/nvme* /dev/disk/by-id/*nvme* 2>/dev/null || true'));
+    record_info('config', script_output('cat /etc/blktests/config 2>/dev/null || true'));
 }
 
 sub run {
@@ -69,7 +92,8 @@ sub run {
     my $log_dir = '/var/log/blktests';
     assert_script_run("mkdir -p ${log_dir}/results");
 
-    prepare_blktests_config($devices);
+    prepare_blktests_config($devices, $tests);
+    record_storage_info;
 
     my @tests = split(',', $tests);
     assert_script_run("cd $test_dir");
@@ -167,7 +191,9 @@ C<./check>. Examples:
 =head2 BLKTESTS_TEST_DEVS
 
 Required. Device list written to F</etc/blktests/config> as C<TEST_DEVS>.
-Set to C<none> to skip writing a device list.
+Set to C<none> to skip writing a device list. If C<BLKTESTS> includes C<md> or
+C<md/003>, the same device list is also written as C<TEST_CASE_DEV_ARRAY[md/003]>
+because that test requires a multi-device array instead of C<TEST_DEVS>.
 
 =head2 BLKTESTS_EXCLUDE
 
