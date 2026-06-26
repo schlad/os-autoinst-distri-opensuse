@@ -17,15 +17,43 @@ use LTP::utils 'prepare_whitelist_environment';
 use package_utils 'install_package';
 use Utils::Logging qw(export_logs_basic save_and_upload_log);
 
+sub test_selection_includes {
+    my ($tests, $wanted) = @_;
+    my ($group) = split('/', $wanted);
+
+    for my $test (split(',', $tests)) {
+        $test =~ s/^\s+|\s+$//g;
+        return 1 if $test eq $wanted || $test eq $group;
+    }
+    return 0;
+}
+
 sub prepare_blktests_config {
-    my ($devices) = @_;
+    my ($devices, $tests) = @_;
 
     if ($devices eq 'none') {
         record_info('INFO', 'No specific tests device selected');
-    } else {
-        script_run("echo TEST_DEVS=\\($devices\\) > /etc/blktests/config");
-        record_info('INFO', "$devices");
+        return;
     }
+
+    my @config = ("TEST_DEVS=($devices)");
+    push @config, qq(TEST_CASE_DEV_ARRAY[md/003]="$devices")
+      if test_selection_includes($tests, 'md/003');
+
+    script_run("echo '$config[0]' > /etc/blktests/config");
+    for my $line (@config[1 .. $#config]) {
+        script_run("echo '$line' >> /etc/blktests/config");
+    }
+    record_info('blktests cfg', join("\n", @config));
+}
+
+sub record_storage_info {
+    my $lsblk = 'lsblk -p -o NAME,TYPE,SIZE,MODEL,SERIAL,TRAN,MOUNTPOINT 2>/dev/null'
+      . ' || lsblk || true';
+    record_info('devices', script_output($lsblk));
+    record_info('/dev disks', script_output('ls -l /dev/nvme* /dev/vd* /dev/sd* 2>/dev/null || true'));
+    record_info('by-id', script_output('ls -l /dev/disk/by-id 2>/dev/null || true'));
+    record_info('blktests cfg', script_output('cat /etc/blktests/config 2>/dev/null || true'));
 }
 
 sub run {
@@ -39,14 +67,29 @@ sub run {
     my $exclude = get_var('BLKTESTS_EXCLUDE');
     my $trtypes = get_var('BLKTESTS_TRTYPES');
     my $issues = get_var('BLKTESTS_KNOWN_ISSUES');
+    my $install = get_var('BLKTESTS_INSTALL', 'from_repo');
 
     record_info('KERNEL', script_output('rpm -qi kernel-default'));
     save_and_upload_log('rpm -qi kernel-default', 'kernel_bug_report.txt');
 
-    #QA repo is added with lower prio in order to avoid possible problems
-    #with some packages provided in both, tested product and qa repo; example: fio
-    add_qa_head_repo(priority => 100);
-    install_package('blktests fio', trup_apply => 1);
+    my $test_dir;
+    if ($install =~ /git/i) {
+        my $repository = get_var('BLKTESTS_REPO', 'https://github.com/linux-blktests/blktests.git');
+        my $version = get_var('BLKTESTS_VERSION', '');
+        add_qa_head_repo(priority => 100);
+        install_package('git-core fio nvme-cli', trup_apply => 1);
+        my $clone_cmd = "git clone --depth=1 $repository";
+        $clone_cmd .= " --branch $version" if $version;
+        assert_script_run($clone_cmd);
+        $test_dir = 'blktests';
+        record_info('test version', script_output('git -C blktests log -1 --oneline'));
+    } else {
+        #QA repo is added with lower prio in order to avoid possible problems
+        #with some packages provided in both, tested product and qa repo; example: fio
+        add_qa_head_repo(priority => 100);
+        install_package('blktests fio', trup_apply => 1);
+        $test_dir = '/usr/lib/blktests';
+    }
 
     #Prepare configuration, log/results directories
     assert_script_run("mkdir -p /etc/blktests");
@@ -54,10 +97,11 @@ sub run {
     my $log_dir = '/var/log/blktests';
     assert_script_run("mkdir -p ${log_dir}/results");
 
-    prepare_blktests_config($devices);
+    prepare_blktests_config($devices, $tests);
+    record_storage_info;
 
     my @tests = split(',', $tests);
-    assert_script_run('cd /usr/lib/blktests');
+    assert_script_run("cd $test_dir");
 
     # BLKTESTS_EXCLUDE provides the initial list; known-issue entries are appended below
     my @exclude = split(/,/, $exclude // '');
@@ -114,7 +158,8 @@ sub post_fail_hook {
 
 =head1 Description
 
-Run the upstream blktests suite from the C<blktests> package.
+Run the upstream blktests suite either from the C<blktests> RPM package (default)
+or from a git checkout.
 
 The test groups to execute are selected with C<BLKTESTS>. Individual tests can
 be skipped either directly with C<BLKTESTS_EXCLUDE> (mostly for debugging purposes)
@@ -124,6 +169,21 @@ matches the upstream C<blktests> variable name, for example C<BLKTESTS_TRTYPES>
 for C<TRTYPES>.
 
 =head1 Configuration
+
+=head2 BLKTESTS_INSTALL
+
+Installation method. Defaults to C<from_repo> which installs the C<blktests> RPM
+from QA:Head. Set to C<from_git> to clone from source instead.
+
+=head2 BLKTESTS_REPO
+
+The blktests git repository URL. Used only with C<BLKTESTS_INSTALL=from_git>.
+Defaults to C<https://github.com/linux-blktests/blktests.git>.
+
+=head2 BLKTESTS_VERSION
+
+Branch or tag to check out. Used only with C<BLKTESTS_INSTALL=from_git>.
+Defaults to the default branch of the repository.
 
 =head2 BLKTESTS
 
@@ -137,7 +197,9 @@ C<./check>. Examples:
 =head2 BLKTESTS_TEST_DEVS
 
 Required. Device list written to F</etc/blktests/config> as C<TEST_DEVS>.
-Set to C<none> to skip writing a device list.
+Set to C<none> to skip writing a device list. If C<BLKTESTS> includes C<md> or
+C<md/003>, the same device list is also written as C<TEST_CASE_DEV_ARRAY[md/003]>
+because that test requires a multi-device array instead of C<TEST_DEVS>.
 
 =head2 BLKTESTS_EXCLUDE
 
