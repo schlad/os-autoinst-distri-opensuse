@@ -67,6 +67,7 @@ sub run {
 
     my @tests = split(',', $tests);
     assert_script_run('cd /usr/lib/blktests');
+    sleep 999999;
 
     # BLKTESTS_EXCLUDE provides the initial list; known-issue entries are appended below
     my @exclude = split(/,/, $exclude // '');
