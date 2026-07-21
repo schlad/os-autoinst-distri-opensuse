@@ -68,7 +68,7 @@ sub run {
         assert_script_run($clone_cmd);
         $test_dir = 'blktests';
         record_info('test version', script_output('git -C blktests log -1 --oneline'));
-	script_run('make');
+        assert_script_run("make -C $test_dir");
     }
     else {
         install_package('blktests fio', trup_apply => 1);
