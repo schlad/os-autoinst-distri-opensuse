@@ -59,6 +59,7 @@ sub run {
 
     my $test_dir;
     if ($install eq 'from_git') {
+	record_info('git');
         my $repository = get_var('BLKTESTS_REPO', 'https://github.com/linux-blktests/blktests.git');
         my $version = get_var('BLKTESTS_VERSION', '');
         install_package('git-core fio nvme-cli', trup_apply => 1);
