@@ -62,7 +62,7 @@ sub run {
 	record_info('git');
         my $repository = get_var('BLKTESTS_REPO', 'https://github.com/linux-blktests/blktests.git');
         my $version = get_var('BLKTESTS_VERSION', '');
-        install_package('git-core dosfstools make gcc fio nvme-cli', trup_apply => 1);
+        install_package('git-core dosfstools make gcc gcc-c++ fio nvme-cli', trup_apply => 1);
         my $clone_cmd = "git clone --depth=1 $repository";
         $clone_cmd .= " --branch $version" if $version;
         assert_script_run($clone_cmd);
