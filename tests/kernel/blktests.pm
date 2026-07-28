@@ -17,7 +17,7 @@ use LTP::utils 'prepare_whitelist_environment';
 use package_utils 'install_package';
 use Utils::Logging qw(export_logs_basic save_and_upload_log);
 use Kernel::block_dev qw(is_block_device record_storage_info);
-use Kernel::utils qw(is_debugfs_mounted enable_debugfs);
+use Kernel::utils qw(is_debugfs_mounted enable_debugfs record_driver_support);
 
 sub prepare_blktests_config {
     my ($devices, $test_case_dev_array) = @_;
@@ -88,6 +88,7 @@ sub run {
     is_block_device(split(/\s+/, $devices)) if $devices ne 'none';
 
     my @tests = split(',', $tests);
+    record_driver_support('raid*') if grep { /^md(\/|$)/ } @tests;
     assert_script_run("cd $test_dir");
 
     # BLKTESTS_EXCLUDE provides the initial list; known-issue entries are appended below
