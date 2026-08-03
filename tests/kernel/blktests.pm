@@ -44,6 +44,7 @@ sub run {
     my $exclude = get_var('BLKTESTS_EXCLUDE');
     my $trtypes = get_var('BLKTESTS_TRTYPES');
     my $md_kver = get_var('BLKTESTS_MD_KVER');
+    my $md_raid_levels = get_var('BLKTESTS_MD_RAID_LEVELS');
     my $issues = get_var('BLKTESTS_KNOWN_ISSUES');
     my $test_case_dev_array = get_var('BLKTESTS_TEST_CASE_DEV_ARRAY');
     my $install = get_var('BLKTESTS_INSTALL', 'from_repo');
@@ -110,11 +111,12 @@ sub run {
     $exclude = join(' ', map { "--exclude=$_" } @exclude);
     $trtypes = "NVMET_TRTYPES=\"$trtypes\" " if $trtypes;
     $md_kver = "BLKTESTS_MD_KVER=\"$md_kver\" " if $md_kver;
+    $md_raid_levels = "MD_RAID_LEVELS=\"$md_raid_levels\" " if $md_raid_levels;
 
     foreach my $i (@tests) {
         my $config = $devices eq 'none' ? '' : '-c /etc/blktests/config';
         my $quick_arg = $quick ? "--quick=$quick" : '';
-        script_run("${trtypes}${md_kver}./check $config -o ${log_dir}/results $quick_arg $exclude $i", 1200);
+        script_run("${trtypes}${md_kver}${md_raid_levels}./check $config -o ${log_dir}/results $quick_arg $exclude $i", 1200);
     }
 
     script_run("cd ${log_dir}");
@@ -244,6 +246,15 @@ passed as C<BLKTESTS_MD_KVER> to C<./check>. Useful for distro kernels that
 backport md atomic write support to an older base version. Example:
 
   BLKTESTS_MD_KVER=6 12 0
+
+=head2 BLKTESTS_MD_RAID_LEVELS
+
+Optional. Overrides which raid levels the md raid sanity, degraded, rebuild
+and consistency-check tests (C<md/005>-C<md/008>) iterate over, passed as
+C<MD_RAID_LEVELS> to C<./check>. Defaults to C<0 1 5 6 10>. Useful to focus a
+run on specific level(s), e.g.:
+
+  BLKTESTS_MD_RAID_LEVELS=5
 
 =head2 BLKTESTS_TRTYPES
 
