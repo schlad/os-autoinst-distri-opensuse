@@ -2561,7 +2561,7 @@ sub ensure_ca_certificates_suse_installed {
         if (is_transactional) {
             transactional::trup_call("--continue run zypper --gpg-auto-import-keys refresh");
             transactional::trup_call('--continue pkg install ca-certificates-suse');
-            transactional::trup_apply;
+            transactional::trup_apply();
         } else {
             zypper_call("--gpg-auto-import-keys in ca-certificates-suse");
         }
