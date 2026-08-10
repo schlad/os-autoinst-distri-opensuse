@@ -14,6 +14,7 @@ use utils;
 use package_utils 'install_package';
 use version_utils 'is_sle';
 use Kernel::usb;
+use qam 'add_repo_if_not_present';
 
 sub md5sum {
     my ($file) = @_;
@@ -64,6 +65,13 @@ sub run {
     die "MD5 sum mismatch: $md5_orig != $md5_copy" unless $md5_orig eq $md5_copy;
     assert_script_run("umount $mountpoint");
 
+
+    # LKLFUSE_TEST_REPO: temporary override to validate an unreleased lklfuse
+    # build (e.g. an OBS/IBS branch) before it lands in the product repos.
+    if (my $test_repo = get_var('LKLFUSE_TEST_REPO')) {
+        add_repo_if_not_present($test_repo, 'lklfuse_test_repo');
+        zypper_call('ref');
+    }
 
     if (@{zypper_search('lklfuse')}) {
         install_package('lklfuse', trup_apply => 1);
