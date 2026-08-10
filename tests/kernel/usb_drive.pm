@@ -69,6 +69,7 @@ sub run {
     # LKLFUSE_TEST_REPO: temporary override to validate an unreleased lklfuse
     # build (e.g. an OBS/IBS branch) before it lands in the product repos.
     if (my $test_repo = get_var('LKLFUSE_TEST_REPO')) {
+        ensure_ca_certificates_suse_installed;
         add_repo_if_not_present($test_repo, 'lklfuse_test_repo');
         zypper_call('ref');
     }
