@@ -59,14 +59,16 @@ sub run {
 
     my $test_dir;
     if ($install eq 'from_git') {
+	record_info('git');
         my $repository = get_var('BLKTESTS_REPO', 'https://github.com/linux-blktests/blktests.git');
         my $version = get_var('BLKTESTS_VERSION', '');
-        install_package('git-core fio nvme-cli', trup_apply => 1);
+        install_package('git-core dosfstools make gcc gcc-c++ fio nvme-cli', trup_apply => 1);
         my $clone_cmd = "git clone --depth=1 $repository";
         $clone_cmd .= " --branch $version" if $version;
         assert_script_run($clone_cmd);
         $test_dir = 'blktests';
         record_info('test version', script_output('git -C blktests log -1 --oneline'));
+        assert_script_run("make -C $test_dir");
     }
     else {
         install_package('blktests fio', trup_apply => 1);
