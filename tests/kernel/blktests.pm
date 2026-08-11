@@ -57,6 +57,8 @@ sub run {
     #with some packages provided in both, tested product and qa repo; example: fio
     add_qa_head_repo(priority => 100);
 
+    sleep(999999);
+
     my $test_dir;
     if ($install eq 'from_git') {
         my $repository = get_var('BLKTESTS_REPO', 'https://github.com/linux-blktests/blktests.git');
