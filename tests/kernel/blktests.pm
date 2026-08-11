@@ -17,7 +17,7 @@ use LTP::utils 'prepare_whitelist_environment';
 use package_utils 'install_package';
 use Utils::Logging qw(export_logs_basic save_and_upload_log);
 use Kernel::block_dev qw(is_block_device record_storage_info);
-use Kernel::utils qw(is_debugfs_mounted enable_debugfs);
+use Kernel::utils qw(is_debugfs_mounted enable_debugfs record_driver_support);
 
 sub prepare_blktests_config {
     my ($devices, $test_case_dev_array) = @_;
@@ -44,6 +44,7 @@ sub run {
     my $exclude = get_var('BLKTESTS_EXCLUDE');
     my $trtypes = get_var('BLKTESTS_TRTYPES');
     my $md_kver = get_var('BLKTESTS_MD_KVER');
+    my $md_raid_levels = get_var('BLKTESTS_MD_RAID_LEVELS');
     my $issues = get_var('BLKTESTS_KNOWN_ISSUES');
     my $test_case_dev_array = get_var('BLKTESTS_TEST_CASE_DEV_ARRAY');
     my $install = get_var('BLKTESTS_INSTALL', 'from_repo');
@@ -88,6 +89,7 @@ sub run {
     is_block_device(split(/\s+/, $devices)) if $devices ne 'none';
 
     my @tests = split(',', $tests);
+    record_driver_support('raid*') if grep { /^md(\/|$)/ } @tests;
     assert_script_run("cd $test_dir");
 
     # BLKTESTS_EXCLUDE provides the initial list; known-issue entries are appended below
@@ -109,11 +111,12 @@ sub run {
     $exclude = join(' ', map { "--exclude=$_" } @exclude);
     $trtypes = "NVMET_TRTYPES=\"$trtypes\" " if $trtypes;
     $md_kver = "BLKTESTS_MD_KVER=\"$md_kver\" " if $md_kver;
+    $md_raid_levels = "MD_RAID_LEVELS=\"$md_raid_levels\" " if $md_raid_levels;
 
     foreach my $i (@tests) {
         my $config = $devices eq 'none' ? '' : '-c /etc/blktests/config';
         my $quick_arg = $quick ? "--quick=$quick" : '';
-        script_run("${trtypes}${md_kver}./check $config -o ${log_dir}/results $quick_arg $exclude $i", 1200);
+        script_run("${trtypes}${md_kver}${md_raid_levels}./check $config -o ${log_dir}/results $quick_arg $exclude $i", 1200);
     }
 
     script_run("cd ${log_dir}");
@@ -243,6 +246,15 @@ passed as C<BLKTESTS_MD_KVER> to C<./check>. Useful for distro kernels that
 backport md atomic write support to an older base version. Example:
 
   BLKTESTS_MD_KVER=6 12 0
+
+=head2 BLKTESTS_MD_RAID_LEVELS
+
+Optional. Overrides which raid levels the md raid sanity, degraded, rebuild
+and consistency-check tests (C<md/005>-C<md/008>) iterate over, passed as
+C<MD_RAID_LEVELS> to C<./check>. Defaults to C<0 1 5 6 10>. Useful to focus a
+run on specific level(s), e.g.:
+
+  BLKTESTS_MD_RAID_LEVELS=5
 
 =head2 BLKTESTS_TRTYPES
 
