@@ -22,7 +22,7 @@ my $logs = '/var/log/irq-delivery-storage';
 # without changing the disk contents or relying on the page cache.
 # TODO: consider a fio library when more tests run fio.
 sub run_fio {
-    my ($dev, $duration, @cpus) = @_;
+    my ($dev, $duration, $max_latency_ms, @cpus) = @_;
     assert_script_run("fio --name=irq-delivery-storage --filename=$dev --readonly --allow_file_create=0 "
           . '--rw=randread --direct=1 --ioengine=libaio --bs=4k --iodepth=16 --size=1G '
           . '--numjobs=' . scalar(@cpus) . ' --cpus_allowed=' . join(',', @cpus) . ' --cpus_allowed_policy=split '
@@ -31,6 +31,16 @@ sub run_fio {
     my $jobs = decode_json(script_output("cat $logs/fio.json"))->{jobs} // [];
     die 'fio did not report all CPU workers' unless @$jobs == @cpus;
     die 'A fio worker completed no reads' if grep { $_->{read}{total_ios} == 0 } @$jobs;
+
+    # A lost interrupt can be hidden by the driver: after its timeout (30 s
+    # for NVMe), it completes the request without an error. Such a read has
+    # a completion latency of seconds instead of milliseconds. With
+    # cpus_allowed_policy=split, worker N runs on the Nth CPU of the list.
+    my @latency_ms = map { $_->{read}{clat_ns}{max} / 1e6 } @$jobs;
+    my ($slowest) = sort { $latency_ms[$b] <=> $latency_ms[$a] } 0 .. $#latency_ms;
+    my $worst = sprintf('worker %d on CPU %d: %.1f ms', $slowest, $cpus[$slowest], $latency_ms[$slowest]);
+    record_info('Read latency', "Maximum completion latency: $worst");
+    die "Read completion latency above $max_latency_ms ms, $worst" if $latency_ms[$slowest] > $max_latency_ms;
 }
 
 sub io_error_count {
@@ -54,6 +64,8 @@ sub run {
     die 'Use an absolute device path without shell metacharacters' unless $dev =~ m{^/dev/[A-Za-z0-9_./:-]+$};
     my $duration = get_var('IRQ_DELIVERY_DURATION', 30);
     die 'IRQ_DELIVERY_DURATION must be a positive integer' unless $duration =~ /^[1-9]\d*$/;
+    my $max_latency_ms = get_var('IRQ_DELIVERY_MAX_LATENCY_MS', 1000);
+    die 'IRQ_DELIVERY_MAX_LATENCY_MS must be a positive integer' unless $max_latency_ms =~ /^[1-9]\d*$/;
     is_block_device($dev);
     my $kernel_name = get_block_dev_kernel_name($dev);
     assert_script_run("test ! -e /sys/class/block/$kernel_name/partition", fail_message => "$dev is a partition");
@@ -67,7 +79,7 @@ sub run {
     assert_script_run("mkdir -p $logs");
     my $before = get_interrupts();
     my $io_errors = io_error_count($kernel_name);
-    run_fio($dev, $duration, @cpus);
+    run_fio($dev, $duration, $max_latency_ms, @cpus);
     my $after = get_interrupts();
 
     # Report the distribution per socket and NUMA node, but do not require it
@@ -104,7 +116,8 @@ sub test_flags {
 
 Exercise PCI storage interrupts on a system with more than eight online
 CPUs on at least two sockets (poo#49517). Run one direct-read fio worker
-per online CPU. Each worker must complete reads, the selected controller's
+per online CPU. Each worker must complete reads without a read that takes
+longer than C<IRQ_DELIVERY_MAX_LATENCY_MS>, the selected controller's
 interrupt count must increase, no new I/O errors may be logged for the disk
 and the kernel must not be tainted (see C<check_kernel_taint> in
 C<LTP::utils>).
@@ -128,6 +141,13 @@ Loop devices, device mapper devices, and partitions are not supported.
 =head2 IRQ_DELIVERY_DURATION
 
 Workload duration in seconds. Defaults to C<30>.
+
+=head2 IRQ_DELIVERY_MAX_LATENCY_MS
+
+Maximum read completion latency of each fio worker in milliseconds.
+Defaults to C<1000>. A read that waits for a driver timeout, for example
+after a lost interrupt, takes seconds. Healthy local storage completes
+reads within a few milliseconds.
 
 =head2 LTP_TAINT_EXPECTED
 
