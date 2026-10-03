@@ -39,6 +39,9 @@ our @EXPORT_OK = qw(
   count_capture_packets
   capture_statistics
   get_net_dev_pci_device
+  set_link_up
+  has_ipv4_addr
+  wait_for_ipv4_addr
 );
 
 =head1 SYNOPSIS
@@ -67,6 +70,48 @@ sub get_net_dev_pci_device {
     my ($pci) = $path =~ m{^(/sys/devices/.*/[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7])/};
     die "$interface is not under a PCI device: $path" unless $pci;
     return $pci;
+}
+
+=head2 set_link_up
+
+ set_link_up($dev);
+
+Sets the network interface C<$dev> up.
+
+=cut
+
+sub set_link_up {
+    my ($dev) = @_;
+    assert_script_run("ip link set $dev up");
+}
+
+=head2 has_ipv4_addr
+
+ my $present = has_ipv4_addr($dev, $ip);
+
+Returns true if the network interface C<$dev> has the IPv4 address C<$ip>.
+
+=cut
+
+sub has_ipv4_addr {
+    my ($dev, $ip) = @_;
+    return script_run("ip -4 -o addr show dev $dev | grep -qF ' $ip/'") == 0;
+}
+
+=head2 wait_for_ipv4_addr
+
+ wait_for_ipv4_addr($dev, $ip);
+
+Waits up to one minute until the network interface C<$dev> has the IPv4
+address C<$ip>, for example an address from DHCP. Dies if it does not get
+it.
+
+=cut
+
+sub wait_for_ipv4_addr {
+    my ($dev, $ip) = @_;
+    script_retry("ip -4 -o addr show dev $dev | grep -qF ' $ip/'", retry => 12, delay => 5,
+        fail_message => "$dev does not have the IPv4 address $ip");
 }
 
 =head2 get_net_prefix_len
