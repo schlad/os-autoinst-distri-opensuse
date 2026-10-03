@@ -38,6 +38,7 @@ our @EXPORT_OK = qw(
   stop_packet_capture
   count_capture_packets
   capture_statistics
+  get_net_dev_pci_device
 );
 
 =head1 SYNOPSIS
@@ -47,6 +48,26 @@ IPsec, L2TP, routing, and general tunnel configuration.
 
 =cut
 
+
+=head2 get_net_dev_pci_device
+
+ my $pci = get_net_dev_pci_device($interface);
+
+Returns the sysfs path of the PCI device of a network interface, for
+example C</sys/devices/pci0000:00/0000:00:1f.6> for C<eno1>. If there are
+PCI bridges, this is the PCI device closest to the interface. Dies if the
+interface is not under a PCI device in sysfs, for example a loopback,
+bridge or bond interface.
+
+=cut
+
+sub get_net_dev_pci_device {
+    my ($interface) = @_;
+    my $path = script_output("readlink -f /sys/class/net/$interface");
+    my ($pci) = $path =~ m{^(/sys/devices/.*/[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7])/};
+    die "$interface is not under a PCI device: $path" unless $pci;
+    return $pci;
+}
 
 =head2 get_net_prefix_len
 
