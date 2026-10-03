@@ -5,6 +5,9 @@ This covers `lib/Kernel`, `lib/LTP`, `lib/Kselftests`, `lib/hpc`,
 `tests/ipsec`, `tests/xfstests` and other code parts where kernel-qe
 is the code owner.
 
+For multimachine tests that describe their machines in a YAML topology,
+see [`KERNEL_MULTIMACHINE.md`](KERNEL_MULTIMACHINE.md).
+
 ## Commit style
 
 Follow the general rules from [`CONTRIBUTING.md`](../CONTRIBUTING.md)

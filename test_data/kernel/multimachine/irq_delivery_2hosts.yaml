@@ -1,0 +1,25 @@
+multimachine_topology:
+  name: irq_delivery_2hosts
+
+  networks:
+    - id: mgmt
+      ipv4_cidr: "10.146.14.0/23"
+
+  nodes:
+    - id: coppi
+      role: sut
+      storage_devices:
+        - /dev/disk/by-id/nvme-SAMSUNG_MZ1LB1T9HALS-00007_S436NE0M322657
+      interfaces:
+        - id: eno1
+          network: mgmt
+          ipv4: "10.146.14.87"
+
+    - id: merckx
+      role: peer
+      storage_devices:
+        - /dev/disk/by-id/nvme-SAMSUNG_MZ1LB1T9HALS-00007_S436NE0M322637
+      interfaces:
+        - id: eno1
+          network: mgmt
+          ipv4: "10.146.14.90"
