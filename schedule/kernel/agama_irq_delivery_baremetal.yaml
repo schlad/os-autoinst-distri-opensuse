@@ -1,10 +1,11 @@
-name:           agama_irq_multisocket_baremetal
+name:           agama_irq_delivery_baremetal
 description:    >
     Install bare metal with Agama, then check PCI storage interrupt delivery
     under direct I/O on a system with more than eight online CPUs on at
-    least two sockets (irq_multisocket, poo#49517). Set
-    IRQ_MULTISOCKET_DEVICE to a whole PCI storage disk of the machine,
-    preferably under /dev/disk/by-id/. The test only reads the disk.
+    least two sockets (irq_delivery, poo#49517). Set IRQ_DELIVERY_DEVICE
+    to one or more whole PCI storage disks of the machine, separated by
+    spaces, preferably under /dev/disk/by-id/. The test only reads the
+    disks.
 vars:
     INST_AUTO: agama_auto/sle_default_ipmi.jsonnet
     DESKTOP: textmode
@@ -15,4 +16,4 @@ schedule:
     - installation/grub_test
     - installation/first_boot
     - kernel/update_kernel
-    - kernel/irq_multisocket
+    - kernel/irq_delivery

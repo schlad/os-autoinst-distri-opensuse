@@ -16,7 +16,7 @@ use Kernel::cpu qw(lscpu_info get_cpu_model get_cpu_map has_cpu_flag);
 use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_device_irqs);
 use Kernel::block_dev qw(is_block_device record_storage_info get_block_dev_kernel_name get_block_dev_pci_device);
 
-my $logs = '/var/log/irq-multisocket';
+my $logs = '/var/log/irq-delivery';
 
 # Pin one reader to each online CPU. Direct reads exercise the controller
 # without changing the disk contents or relying on the page cache.
@@ -24,7 +24,7 @@ my $logs = '/var/log/irq-multisocket';
 sub run_fio {
     my ($disk, $duration, $max_latency_ms, @cpus) = @_;
     my $output = "$logs/fio-$disk->{name}.json";
-    assert_script_run("fio --name=irq-multisocket --filename=$disk->{dev} --readonly --allow_file_create=0 "
+    assert_script_run("fio --name=irq-delivery --filename=$disk->{dev} --readonly --allow_file_create=0 "
           . '--rw=randread --direct=1 --ioengine=libaio --bs=4k --iodepth=16 --size=1G '
           . '--numjobs=' . scalar(@cpus) . ' --cpus_allowed=' . join(',', @cpus) . ' --cpus_allowed_policy=split '
           . "--runtime=$duration --time_based --output-format=json --output=$output",
@@ -108,12 +108,12 @@ sub run {
     die 'This scenario requires more than eight online CPUs on at least two sockets'
       unless @cpus > 8 && keys(%sockets) >= 2 && !$sockets{unknown};
 
-    my @devs = split ' ', get_required_var('IRQ_MULTISOCKET_DEVICE');
-    die 'IRQ_MULTISOCKET_DEVICE has no device' unless @devs;
-    my $duration = get_var('IRQ_MULTISOCKET_DURATION', 30);
-    die 'IRQ_MULTISOCKET_DURATION must be a positive integer' unless $duration =~ /^[1-9]\d*$/;
-    my $max_latency_ms = get_var('IRQ_MULTISOCKET_MAX_LATENCY_MS', 1000);
-    die 'IRQ_MULTISOCKET_MAX_LATENCY_MS must be a positive integer' unless $max_latency_ms =~ /^[1-9]\d*$/;
+    my @devs = split ' ', get_required_var('IRQ_DELIVERY_DEVICE');
+    die 'IRQ_DELIVERY_DEVICE has no device' unless @devs;
+    my $duration = get_var('IRQ_DELIVERY_DURATION', 30);
+    die 'IRQ_DELIVERY_DURATION must be a positive integer' unless $duration =~ /^[1-9]\d*$/;
+    my $max_latency_ms = get_var('IRQ_DELIVERY_MAX_LATENCY_MS', 1000);
+    die 'IRQ_DELIVERY_MAX_LATENCY_MS must be a positive integer' unless $max_latency_ms =~ /^[1-9]\d*$/;
 
     # Check all disks first, so that a configuration error fails before the
     # workload runs
@@ -147,7 +147,7 @@ sub test_flags {
 Exercise PCI storage interrupts on a system with more than eight online
 CPUs on at least two sockets (poo#49517). For each selected disk, run one
 direct-read fio worker per online CPU. Each worker must complete reads
-without a read that takes longer than C<IRQ_MULTISOCKET_MAX_LATENCY_MS>,
+without a read that takes longer than C<IRQ_DELIVERY_MAX_LATENCY_MS>,
 the interrupt count of the disk's controller must increase, no new I/O
 errors may be logged for the disk and the kernel must not be tainted (see
 C<check_kernel_taint> in C<LTP::utils>).
@@ -161,7 +161,7 @@ reproduced on this controller.
 
 =head1 Configuration
 
-=head2 IRQ_MULTISOCKET_DEVICE
+=head2 IRQ_DELIVERY_DEVICE
 
 Required whole-disk device paths, separated by spaces, preferably under
 C</dev/disk/by-id/>. Select local PCI storage such as NVMe or a disk behind
@@ -170,11 +170,11 @@ its own workload. Each disk must have at least 1 GiB. The workload only
 reads the disks. Loop devices, device mapper devices, and partitions are
 not supported.
 
-=head2 IRQ_MULTISOCKET_DURATION
+=head2 IRQ_DELIVERY_DURATION
 
 Workload duration in seconds. Defaults to C<30>.
 
-=head2 IRQ_MULTISOCKET_MAX_LATENCY_MS
+=head2 IRQ_DELIVERY_MAX_LATENCY_MS
 
 Maximum read completion latency of each fio worker in milliseconds.
 Defaults to C<1000>. A read that waits for a driver timeout, for example
