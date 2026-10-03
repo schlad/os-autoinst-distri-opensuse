@@ -13,6 +13,7 @@ our @EXPORT_OK = qw(
   get_node_by_role
   get_local_node
   get_peers
+  get_job_nodes
   get_topology_network
   get_node_interface
   require_field
@@ -55,8 +56,14 @@ The expected topology shape is:
     nodes:
       - id: ...
         role: ...
+        external: 1    # optional
         interfaces:
           - network: ...
+
+A node with C<external> set is part of the setup but does not run an
+openQA job, for example a storage appliance that the tests use. It has
+addresses and a role that other nodes can look up, but it does not take
+part in barriers and cannot be the local node.
 
 This module validates the basic structure, builds lookup indexes, and exposes
 helpers for resolving nodes, networks, and interfaces. It is intentionally
@@ -107,6 +114,9 @@ sub _build_topology_index {
         croak "multimachine_topology interfaces for node '$node_id' must be an array reference"
           unless ref $interfaces eq 'ARRAY';
     }
+
+    croak 'multimachine_topology has no node that runs a job'
+      unless grep { !$_->{external} } @$nodes;
 
     for my $network (@$networks) {
         my $network_id = require_field($network->{id}, 'multimachine_topology network id missing');
@@ -172,7 +182,8 @@ sub get_node_by_role {
 
   my $node = get_local_node();
 
-Resolve the local node using the C<ROLE> job variable.
+Resolve the local node using the C<ROLE> job variable. Dies if that node is
+external.
 
 =cut
 
@@ -180,7 +191,25 @@ sub get_local_node {
     my $role = get_var('ROLE');
     croak "Unable to resolve local node: job variable 'ROLE' is not set"
       unless defined $role && $role ne '';
-    return get_node_by_role($role);
+    my $node = get_node_by_role($role);
+    croak "Unable to resolve local node: node with role '$role' is external"
+      if $node->{external};
+    return $node;
+}
+
+=head2 get_job_nodes
+
+  my $nodes = get_job_nodes();
+
+Return an arrayref of the nodes that run an openQA job, in topology order:
+all nodes except the external ones. Use it, for example, for the number of
+tasks of a barrier.
+
+=cut
+
+sub get_job_nodes {
+    my $topology = get_topology();
+    return [grep { !$_->{external} } @{$topology->{nodes}}];
 }
 
 =head2 get_peers
