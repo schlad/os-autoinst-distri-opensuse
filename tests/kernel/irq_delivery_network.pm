@@ -14,7 +14,7 @@ use package_utils 'install_package';
 use Mojo::JSON 'decode_json';
 use LTP::utils 'check_kernel_taint';
 use Kernel::cpu qw(lscpu_info get_cpu_model get_cpu_map has_cpu_flag);
-use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_device_irqs);
+use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_irqs_in_use get_device_irqs);
 use Kernel::net_tests 'get_net_dev_pci_device';
 use Kernel::multimachine_topology qw(get_local_node get_node_by_role get_interface require_field);
 
@@ -104,11 +104,14 @@ sub run_sut {
     my $interface = test_interface($node);
     my $peer_ip = test_interface(get_node_by_role('peer'))->{ipv4};
     my $nic = prepare_nic($interface->{id});
-    my @irqs = @{$nic->{irqs}};
     assert_script_run("mkdir -p $logs");
     barrier_wait({name => 'IRQ_NET_PEER_READY', check_dead_job => 1});
 
     my $before = get_interrupts();
+    # A driver can reserve more interrupts than it uses
+    my @irqs = get_irqs_in_use($before, @{$nic->{irqs}});
+    die "No interrupt of $nic->{name} is in use" unless @irqs;
+    record_info("IRQs in use $nic->{name}", scalar(@irqs) . ' of ' . scalar(@{$nic->{irqs}}) . ': ' . join(',', @irqs));
     # poo#49517 broke interrupt remapping on x2APIC machines. Show if this
     # run went through that path.
     my $remapped = get_irq_remapped($before, @irqs);
