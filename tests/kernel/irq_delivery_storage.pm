@@ -13,7 +13,7 @@ use package_utils 'install_package';
 use Mojo::JSON 'decode_json';
 use LTP::utils 'check_kernel_taint';
 use Kernel::cpu qw(lscpu_info get_cpu_model get_cpu_map has_cpu_flag);
-use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_device_irqs);
+use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_irqs_in_use get_device_irqs);
 use Kernel::block_dev qw(is_block_device record_storage_info get_block_dev_kernel_name get_block_dev_pci_device);
 use Kernel::multimachine_topology 'get_local_node';
 use scheduler 'get_test_suite_data';
@@ -67,8 +67,11 @@ sub prepare_disk {
 
 sub test_disk {
     my ($self, $disk, $info, $map, $duration, $max_latency_ms, @cpus) = @_;
-    my @irqs = @{$disk->{irqs}};
     my $before = get_interrupts();
+    # A driver can reserve more interrupts than it uses
+    my @irqs = get_irqs_in_use($before, @{$disk->{irqs}});
+    die "No interrupt of $disk->{name} is in use" unless @irqs;
+    record_info("IRQs in use $disk->{name}", scalar(@irqs) . ' of ' . scalar(@{$disk->{irqs}}) . ': ' . join(',', @irqs));
 
     # poo#49517 broke interrupt remapping on x2APIC machines. Show if this
     # run went through that path.
