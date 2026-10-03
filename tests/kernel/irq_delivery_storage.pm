@@ -15,6 +15,8 @@ use LTP::utils 'check_kernel_taint';
 use Kernel::cpu qw(lscpu_info get_cpu_model get_cpu_map has_cpu_flag);
 use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_device_irqs);
 use Kernel::block_dev qw(is_block_device record_storage_info get_block_dev_kernel_name get_block_dev_pci_device);
+use Kernel::multimachine_topology 'get_local_node';
+use scheduler 'get_test_suite_data';
 
 my $logs = '/var/log/irq-delivery-storage';
 
@@ -95,6 +97,19 @@ sub test_disk {
     record_info("I/O passed $disk->{name}", scalar(@cpus) . " CPU workers completed reads; $delta new controller interrupts");
 }
 
+# The disks come from IRQ_DELIVERY_DEVICE or, in a multimachine setup, from
+# the storage_devices of the local node in the topology
+sub storage_devices {
+    if (my $devices = get_var('IRQ_DELIVERY_DEVICE')) {
+        return ('IRQ_DELIVERY_DEVICE', split(' ', $devices));
+    }
+    if ((get_test_suite_data() // {})->{multimachine_topology}) {
+        my $node = get_local_node();
+        return ("storage_devices of $node->{id} in multimachine_topology", @{$node->{storage_devices} // []});
+    }
+    return ('nothing');
+}
+
 sub run {
     my ($self) = @_;
     select_serial_terminal;
@@ -108,8 +123,10 @@ sub run {
     die 'This scenario requires more than eight online CPUs on at least two sockets'
       unless @cpus > 8 && keys(%sockets) >= 2 && !$sockets{unknown};
 
-    my @devs = split ' ', get_required_var('IRQ_DELIVERY_DEVICE');
-    die 'IRQ_DELIVERY_DEVICE has no device' unless @devs;
+    my ($source, @devs) = storage_devices();
+    die "No disk to test from $source: set IRQ_DELIVERY_DEVICE or storage_devices of the local node in multimachine_topology"
+      unless @devs;
+    record_info('Disks', "From $source:\n" . join("\n", @devs));
     my $duration = get_var('IRQ_DELIVERY_DURATION', 30);
     die 'IRQ_DELIVERY_DURATION must be a positive integer' unless $duration =~ /^[1-9]\d*$/;
     my $max_latency_ms = get_var('IRQ_DELIVERY_MAX_LATENCY_MS', 1000);
@@ -163,12 +180,16 @@ reproduced on this controller.
 
 =head2 IRQ_DELIVERY_DEVICE
 
-Required whole-disk device paths, separated by spaces, preferably under
-C</dev/disk/by-id/>. Select local PCI storage such as NVMe or a disk behind
-a SATA controller. The test checks the disks one after another, each with
-its own workload. Each disk must have at least 1 GiB. The workload only
-reads the disks. Loop devices, device mapper devices, and partitions are
-not supported.
+Whole-disk device paths, separated by spaces, preferably under
+C</dev/disk/by-id/>. Select local PCI storage such as NVMe or a disk
+behind a SATA controller. The test checks the disks one after another,
+each with its own workload. Each disk must have at least 1 GiB. The
+workload only reads the disks. Loop devices, device mapper devices, and
+partitions are not supported.
+
+In a multimachine setup, the disks can instead come from
+C<storage_devices> of the local node in C<multimachine_topology> (see
+C<Kernel::multimachine_topology>). This setting overrides them.
 
 =head2 IRQ_DELIVERY_DURATION
 
