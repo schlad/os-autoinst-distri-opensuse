@@ -16,7 +16,7 @@ use Kernel::cpu qw(lscpu_info get_cpu_model get_cpu_map has_cpu_flag);
 use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_device_irqs);
 use Kernel::block_dev qw(is_block_device record_storage_info get_block_dev_kernel_name get_block_dev_pci_device);
 
-my $logs = '/var/log/irq-delivery';
+my $logs = '/var/log/irq-delivery-storage';
 
 # Pin one reader to each online CPU. Direct reads exercise the controller
 # without changing the disk contents or relying on the page cache.
@@ -24,7 +24,7 @@ my $logs = '/var/log/irq-delivery';
 sub run_fio {
     my ($disk, $duration, $max_latency_ms, @cpus) = @_;
     my $output = "$logs/fio-$disk->{name}.json";
-    assert_script_run("fio --name=irq-delivery --filename=$disk->{dev} --readonly --allow_file_create=0 "
+    assert_script_run("fio --name=irq-delivery-storage --filename=$disk->{dev} --readonly --allow_file_create=0 "
           . '--rw=randread --direct=1 --ioengine=libaio --bs=4k --iodepth=16 --size=1G '
           . '--numjobs=' . scalar(@cpus) . ' --cpus_allowed=' . join(',', @cpus) . ' --cpus_allowed_policy=split '
           . "--runtime=$duration --time_based --output-format=json --output=$output",
