@@ -12,8 +12,8 @@ use serial_terminal 'select_serial_terminal';
 use package_utils 'install_package';
 use Mojo::JSON 'decode_json';
 use LTP::utils 'check_kernel_taint';
-use Kernel::cpu qw(get_cpu_model get_cpu_map);
-use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_device_irqs);
+use Kernel::cpu qw(lscpu_info get_cpu_model get_cpu_map has_cpu_flag);
+use Kernel::irq qw(get_interrupts get_irq_total get_irq_per_cpu get_irq_remapped get_device_irqs);
 use Kernel::block_dev qw(is_block_device record_storage_info get_block_dev_kernel_name get_block_dev_pci_device);
 
 my $logs = '/var/log/irq-delivery-storage';
@@ -52,10 +52,11 @@ sub run {
     my ($self) = @_;
     select_serial_terminal;
 
+    my $info = lscpu_info();
     my $map = get_cpu_map();
     my @cpus = sort { $a <=> $b } grep { $map->{$_}{online} } keys %$map;
     my %sockets = map { ($map->{$_}{socket} // 'unknown') => 1 } @cpus;
-    record_info('CPU topology', (get_cpu_model() // 'unknown') . "\nonline CPUs: " . join(',', @cpus)
+    record_info('CPU topology', (get_cpu_model($info) // 'unknown') . "\nonline CPUs: " . join(',', @cpus)
           . "\nsockets with online CPUs: " . join(',', sort keys %sockets));
     die 'This scenario requires more than eight online CPUs on at least two sockets'
       unless @cpus > 8 && keys(%sockets) >= 2 && !$sockets{unknown};
@@ -78,6 +79,14 @@ sub run {
     install_package('fio', trup_apply => 1);
     assert_script_run("mkdir -p $logs");
     my $before = get_interrupts();
+
+    # poo#49517 broke interrupt remapping on x2APIC machines. Show if this
+    # run went through that path.
+    my $remapped = get_irq_remapped($before, @irqs);
+    my $remapped_count = grep { $_ } values %$remapped;
+    record_info('Interrupt mode', 'x2APIC offered by the CPU: ' . (has_cpu_flag('x2apic', $info) ? 'yes' : 'no')
+          . "\nRemapped controller IRQs: $remapped_count of " . scalar(@irqs));
+
     my $io_errors = io_error_count($kernel_name);
     run_fio($dev, $duration, $max_latency_ms, @cpus);
     my $after = get_interrupts();
