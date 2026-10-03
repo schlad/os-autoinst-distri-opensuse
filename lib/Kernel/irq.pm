@@ -19,6 +19,7 @@ our @EXPORT_OK = qw(
   get_irq_total
   get_irq_per_cpu
   get_irq_remapped
+  get_irqs_in_use
   get_device_irqs
 );
 
@@ -145,6 +146,25 @@ sub get_irq_remapped {
     return {map { $_ => (_irq($snapshot, $_)->{desc} =~ /^IR-/ ? 1 : 0) } @irqs};
 }
 
+=head2 get_irqs_in_use
+
+ my @in_use = get_irqs_in_use($snapshot, @irqs);
+
+Returns the given interrupts that have a row in a snapshot from
+C<get_interrupts()>, in the given order. A driver can reserve more
+interrupts than it uses: C<get_device_irqs()> returns all reserved
+interrupts, but only interrupts that the driver requested appear in
+C</proc/interrupts>. For example, a network card reserves interrupts for
+an RDMA driver that is not loaded, and the driver of a network interface
+that is down requests none.
+
+=cut
+
+sub get_irqs_in_use {
+    my ($snapshot, @irqs) = @_;
+    return grep { exists $snapshot->{irqs}{$_} } @irqs;
+}
+
 =head2 get_device_irqs
 
  my @irqs = get_device_irqs($sysfs_path);
@@ -152,7 +172,9 @@ sub get_irq_remapped {
 Returns the interrupt numbers of a PCI device, for example
 C</sys/devices/pci0000:00/0000:00:01.0>. These are the MSI or MSI-X
 interrupts from C<msi_irqs> if the device uses them, else the legacy
-interrupt from C<irq>. Dies if the device has no interrupt.
+interrupt from C<irq>. Dies if the device has no interrupt. These are the
+interrupts that the driver reserved; see C<get_irqs_in_use()> for the
+interrupts that it uses.
 
 =cut
 
