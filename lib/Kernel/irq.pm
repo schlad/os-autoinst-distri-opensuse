@@ -18,6 +18,7 @@ our @EXPORT_OK = qw(
   get_interrupts
   get_irq_total
   get_irq_per_cpu
+  get_irq_remapped
   get_device_irqs
 );
 
@@ -122,6 +123,26 @@ sub get_irq_per_cpu {
         $counts{$cpus[$_]} += $row->[$_] for 0 .. $#$row;
     }
     return \%counts;
+}
+
+=head2 get_irq_remapped
+
+ my $remapped = get_irq_remapped($snapshot, @irqs);
+
+Returns a hash reference of each given interrupt to 1 if it goes through
+interrupt remapping (Intel VT-d or AMD-Vi), else 0, from a snapshot from
+C<get_interrupts()>. Dies if an interrupt is missing.
+
+On x86_64, the chip name of a remapped interrupt in C</proc/interrupts>
+starts with C<IR->, for example C<IR-PCI-MSIX-0000:02:00.0> or
+C<IR-IO-APIC>. Other architectures do not use this prefix, so all
+interrupts are reported as not remapped there.
+
+=cut
+
+sub get_irq_remapped {
+    my ($snapshot, @irqs) = @_;
+    return {map { $_ => (_irq($snapshot, $_)->{desc} =~ /^IR-/ ? 1 : 0) } @irqs};
 }
 
 =head2 get_device_irqs
