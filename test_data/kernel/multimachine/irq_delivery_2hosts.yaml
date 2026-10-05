@@ -1,0 +1,28 @@
+multimachine_topology:
+  name: irq_delivery_2hosts
+
+  networks:
+    # Port 0 of the Intel XXV710 25GbE cards (i40e), on one layer 2 link
+    - id: link25g
+      ipv4_cidr: "192.168.250.0/24"
+
+  nodes:
+    - id: coppi
+      role: sut
+      storage_devices:
+        - /dev/disk/by-id/nvme-SAMSUNG_MZ1LB1T9HALS-00007_S436NE0M322657
+      interfaces:
+        - id: enp20s0f0np0
+          network: link25g
+          static: 1
+          ipv4: "192.168.250.1"
+
+    - id: merckx
+      role: peer
+      storage_devices:
+        - /dev/disk/by-id/nvme-SAMSUNG_MZ1LB1T9HALS-00007_S436NE0M322637
+      interfaces:
+        - id: enp20s0f0np0
+          network: link25g
+          static: 1
+          ipv4: "192.168.250.2"
