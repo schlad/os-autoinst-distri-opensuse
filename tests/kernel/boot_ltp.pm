@@ -76,6 +76,10 @@ sub run {
     return unless (get_var('LTP_COMMAND_FILE'));
 
     check_kernel_taint($self, 1);
+
+    # chronyd slewing after clock setting tests skews CLOCK_MONOTONIC, poo#193939
+    script_run('systemctl stop chronyd.service') if get_var('LTP_STOP_CHRONYD');
+
     prepare_ltp_env;
     init_ltp_tests($cmd_file);
 

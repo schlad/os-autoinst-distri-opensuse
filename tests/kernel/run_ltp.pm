@@ -573,6 +573,12 @@ Comma separated list of debug features to enable during test run.
 Minimum uptime in seconds before LTP tests start. It applies only to the
 native openQA runner, not to tests run by kirk.
 
+=head2 LTP_STOP_CHRONYD
+
+Stop chronyd before LTP tests start. Clock setting tests (e.g. leapsec01,
+clock_settime04) can make chronyd slew the clock, which changes the rate of
+CLOCK_MONOTONIC and breaks timer precision tests such as epoll_pwait03.
+
 =head2 LTP_REBOOT_AFTER_TEST
 
 Reboot SUT after each test (unless last test or TCONF). It prolongs testing
