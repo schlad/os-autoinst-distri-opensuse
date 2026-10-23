@@ -1,0 +1,15 @@
+name:           agama_kvm_sev_baremetal
+description:    >
+    Install bare metal with Agama, then run the KVM SEV kselftests and
+    check the cgroup misc controller with them. Set
+    KSELFTEST_COLLECTION=kvm and KSELFTEST_TESTS to the SEV tests. For
+    x86_64 AMD hosts with SEV enabled only.
+schedule:
+    - installation/ipxe_install
+    - installation/agama_reboot
+    - installation/grub_test
+    - installation/first_boot
+    - kernel/update_kernel
+    - kernel/kselftests_prepare
+    - kernel/kselftests_run
+    - kernel/kselftests_sev_misc_cgroup
