@@ -12,6 +12,7 @@ use Mojo::Base 'opensusebasetest';
 use testapi;
 use serial_terminal 'select_serial_terminal';
 use LTP::utils 'get_ltproot';
+use utils 'write_sut_file';
 
 my $settick = '/root/settick.py';
 
@@ -65,7 +66,7 @@ sub run {
 }
 
 sub post_fail_hook {
-    set_tick(10000);
+    script_run("test -f $settick && python3 $settick 10000");
 }
 
 sub test_flags {
