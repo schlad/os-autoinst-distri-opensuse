@@ -79,6 +79,9 @@ sub run {
     prepare_ltp_env;
     init_ltp_tests($cmd_file);
 
+    # Debug experiment for poo#193939, not for merge
+    return loadtest_kernel('timer_slew_experiment') if get_var('TIMER_SLEW_EXPERIMENT');
+
     # If the command file (runtest file) is set then we dynamically schedule
     # the test and shutdown modules.
     schedule_tests($cmd_file) if $cmd_file;
