@@ -86,6 +86,7 @@
       <li><a href="#az_network_dns_links_cleanup">az_network_dns_links_cleanup</a></li>
       <li><a href="#az_network_dns_zones_cleanup">az_network_dns_zones_cleanup</a></li>
       <li><a href="#az_role_definition_list">az_role_definition_list</a></li>
+      <li><a href="#az_graph_query">az_graph_query</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap/azure_cli.pm</h1>
@@ -116,7 +117,11 @@
 <dd>
 
 </dd>
-<dt id="timeout---override-default-bmwqemu-timeout-for-az-cli-command"><b>timeout</b> - override default bmwqemu timeout for `az cli` command</dt>
+<dt id="timeout---override-default-bmwqemu-timeout-for-az-cli-command.-Ignored-when-using-soft_timeout"><b>timeout</b> - override default bmwqemu timeout for `az cli` command. Ignored when using <b>soft_timeout</b></dt>
+<dd>
+
+</dd>
+<dt id="soft_timeout---optional-stop-the-az-cli-command-on-the-SUT-after-this-time-scaled-using-the-timeout-command.-It-replaces-timeout.-If-the-command-is-stopped-the-rc-is-124-or-137-for-SIGKILL-:-the-caller-decides-what-to-do.-Use-this-option-carefully-especially-for-commands-that-change-cloud-resources-create-update-delete-:-the-request-can-already-be-sent-to-Azure-when-the-command-is-stopped-so-the-resource-state-is-not-known"><b>soft_timeout</b> - optional, stop the `az cli` command on the SUT after this time (scaled) using the `timeout` command. It replaces <b>timeout</b>. If the command is stopped, the rc is 124 (or 137 for SIGKILL): the caller decides what to do. Use this option carefully, especially for commands that change cloud resources (create, update, delete): the request can already be sent to Azure when the command is stopped, so the resource state is not known.</dt>
 <dd>
 
 </dd>
@@ -457,7 +462,7 @@
     resource_group =&gt; &#39;openqa-rg&#39;,
     name =&gt; &#39;openqa-pip&#39;)</code></pre>
 
-<p>Return an IPv4 public IP address from its name or undef on failure.</p>
+<p>Return an IPv4 public IP address from its name or undef on failure. The command is tried up to 3 times, waiting 10s and then 20s between the attempts. A missing resource is not retried.</p>
 
 <dl>
 
@@ -470,6 +475,10 @@
 
 </dd>
 <dt id="timeout---optional-command-timeout-in-seconds"><b>timeout</b> - optional command timeout in seconds</dt>
+<dd>
+
+</dd>
+<dt id="soft_timeout---optional-see-soft_timeout-in-az"><b>soft_timeout</b> - optional, see <b>soft_timeout</b> in <code>az()</code></dt>
 <dd>
 
 </dd>
@@ -1662,7 +1671,10 @@ identifiers for Azure resources.</code></pre>
 
 <h2 id="az_storage_blob_update">az_storage_blob_update</h2>
 
-<pre><code>az_storage_blob_update(container_name=&gt;&#39;container&#39;, account_name=&gt;&#39;stuff&#39;, name=&#39;blobby&#39; [, lease_id=42]);</code></pre>
+<pre><code>az_storage_blob_update(container_name=&gt;&#39;container&#39;,
+    account_name=&gt;&#39;stuff&#39;,
+    name=&#39;blobby&#39;
+    [, lease_id=42, if_unmodified_since=&gt;&#39;1999-12-31T00:00Z&#39;]);</code></pre>
 
 <p>Update properties of storage blob. Returns az cli command exit code.</p>
 
@@ -1681,6 +1693,14 @@ identifiers for Azure resources.</code></pre>
 
 </dd>
 <dt id="lease_id-Lease-id-in-case-there-is-a-lease-put-on-a-file"><b>lease_id</b> Lease id in case there is a lease put on a file</dt>
+<dd>
+
+</dd>
+<dt id="if_unmodified_since-update-only-if-unmodified-since-UTC-datetime-Y-m-dTH:MZ"><b>if_unmodified_since</b> update only if unmodified since UTC datetime (Y-m-d&#39;T&#39;H:M&#39;Z&#39;)</dt>
+<dd>
+
+</dd>
+<dt id="failok---Ignore-error-messages-and-return-result.-Default:-Inherited-by-az"><b>failok</b> - Ignore error messages and return result. Default: Inherited by `az()`</dt>
 <dd>
 
 </dd>
@@ -1994,6 +2014,27 @@ identifiers for Azure resources.</code></pre>
 <dl>
 
 <dt id="name-Name-of-the-role"><b>name</b> Name of the role</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_graph_query">az_graph_query</h2>
+
+<pre><code>az_graph_query(statements=&gt;[
+    &#39;where name startswith &quot;MyResource&quot;&#39;,
+    &#39;&#39;
+])</code></pre>
+
+<p>Function for executing KQL with azure resource graph. For this to work you need to have `resource-graph` extension installed using command <code>&#39;az extension add --name resource-graph --upgrade&#39;</code></p>
+
+<dl>
+
+<dt id="statements-Array-reference-of-statements.-One-statement-per-element"><b>statements</b> Array reference of statements. One statement per element.</dt>
+<dd>
+
+</dd>
+<dt id="query-Additional-query-using-Jmespath-Optional"><b>query</b> Additional query using Jmespath (Optional)</dt>
 <dd>
 
 </dd>
